@@ -1,0 +1,130 @@
+% http://dev.baywifi.com/latex
+\documentclass[10pt]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[LY1]{fontenc}
+\usepackage{amssymb, amsmath, fullpage, boxedminipage, listings}
+\usepackage{baskerville}
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\TA}{\mathit{TA}}
+
+
+\linespread{1.5}
+\setlength\parskip{10pt}
+\setlength\parindent{0 pt}
+
+% This is now the recommended way for checking for PDFLaTeX:
+\usepackage{ifpdf}
+\ifpdf
+\usepackage[pdftex]{graphicx}
+\else
+\usepackage{graphicx}
+\fi
+\title{\textbf{Proof of Security}}
+\author{  }
+
+\date{ }
+
+\begin{document}
+
+\ifpdf
+\DeclareGraphicsExtensions{.pdf, .jpg, .tif}
+\else
+\DeclareGraphicsExtensions{.eps, .jpg}
+\fi
+
+\maketitle
+
+\section*{Charting the Course}
+
+Proof of security in two steps.  We will base multi-TA WIBE security (IND-smWID-CPA) on multi-TA HIBE security (IND-smID-CPA), which in turn will be based on the Bilinear Decision Diffie-Hellman problem (BDDH).  In the construction of this Boneh-Boyen-based scheme, each $\TA_j$ has a private key $d_j = (\Sigma \alpha_i \cdot g_2 + \Sigma r_{i,j}(u_{0,0} + ID_{j,1} \cdot u_{0,1}), \Sigma r_{i,j} \cdot g_1)$ with summations over $i \in \{ 1 ... n\}$.  These keys are constructed by taking input from each $\TA_i$ of the form $(\alpha_i )$
+
+\section*{HIBE to WIBE}
+\textbf{Theorem:}
+
+If the Boneh-Boyen multi-$\TA$ HIBE is IND-smID-CPA secure then its respective WIBE is IND-smWID-CPA secure.
+
+\textbf{Proof:}
+
+The proof will follow by contradiction.  Assume an adversary $\A$ with an advantage in the IND-smID-CPA game for the WIBE.  We will construct another adversary $\B$ which, using $\A$ as a black box, will gain an advantage in the IND-sID-CPA game for the HIBE.
+
+Initialization:
+
+The challenger announces to $\B$ a set of $n$ $\TA$'s $(\TA_1, ..., \TA_n)$ and a maximum hierarchy depth $L$. $\B$ begins interacting with $\A$ and repeats the $\TA$'s and depth to $\A$ verbatim.  $\A$ responds with a challenge identity $P^* = (P_1, ..., P_K)$ with $P_1 \in \{\TA_1, ..., \TA_n\}$ or $P_1 = "*"$.  Since $\B$ cannot have any wildcards in his challenge identity we will take the non-wildcard portions of $P^*$ to make a fixed identity $ID^*$.  We set $\B$'s challenge identity to be $ID^* = {ID^*_i} = P^*_{\pi(i)}$ where the map $\pi(i) = i - |W(P^*_{\le i})| \forall i \not\in W(P^*)$, dropping the wildcard portion.  $\B$ announces this $ID^*$ as his choice of challenge identity.
+
+Setup:
+
+The challenger runs \texttt{Setup} to generate HIBE parameters $\{g_1, g_2, u_{0,0}, ..., u_{L,1}\}$.  Upon receiving these parameters, $\B$ sets his own $\hat u_{i, j} = u_{i,j} \forall i \not\in W(P)$ and $\hat u_{i,j} = g_1 \forall i \in W(P)$ and announces to $\A$ WIBE parameters $\{g_1, g_2, \hat u_{0,0}, ... \hat u_{L,1}\}$.
+
+Queries:
+
+Any valid query made by $\A$ must be answered by $\B$, possibly after consulting her own oracles.  The adversaries $\A$ and $\B$ have the same oracles available: \texttt{SetupCoalitionBroadcast}, \texttt{SetupCoalitionKeys}, \texttt{CorruptTA}, and \texttt{CorruptUser}.
+
+Since the $\TA$'s available to form coalitions are identical for $\A$ and $\B$, any queries to the \texttt{SetupCoalitionBroadcast} and \texttt{SetupCoalitionKeys} oracles made by $\A$ may be repeated verbatim by $\B$.  Queries made to the \texttt{CorruptTA} oracle may be made for any $\TA \neq P_1$ when $P_1 \neq "*"$, if the challenge pattern has a wildcard on the $\TA$-level ($P_1 = "*"$) then any $\TA$ is an ancestor of the challenge recipient and no \texttt{CorruptTA} queries may be made.
+
+Queries to the \texttt{CorruptUser} oracle may be made of any node that is not an ancestor of the challenge pattern, i.e. a user $ID = (ID_1, ..., ID_j)$ may not be corrupted if $P_i \in {ID_i, "*"} \forall i \le j$. To answer a \texttt{CorruptUser} query, $\B$ projects the identity $ID = (ID_1, ID_2, ..., ID_j)$ from the WIBE to the HIBE as $ID^\prime = ID_{\pi(i)}$ and queries her \texttt{CorruptUser} oracle for $d_{ID^\prime} = (a_0, a_1, ..., a_{pi(j)})$.  $\B$ must now fill in the missing pieces of the key $d_{ID}$.  First $\B$ sets $b_i = a_{\pi^{-1}(i)} \forall i > 0$.  Then $\B$ chooses $r_i \leftarrow \mathbb{F}_p$ randomly and sets $b_i = r_i \cdot g_1$ for the missing values of $i > 0$.  Finally $\B$ sets the value of $b_0 = a_0 \cdot \Pi r_i(\hat \hat u_{i,0} + ID_i \cdot \hat u_{i,1})$ and answers $\A$'s query with $d_{ID} = (b_0, b_1, ..., b_j)$.
+
+Challenge:
+
+The final oracle available to both $\A$ and $\B$ is the \texttt{Test} oracle, which takes two messages $m_0$ and $m_1$ and returns the encrypted $m_b$ for an unknown $b \in \{0,1\}$.  $\B$ allows $\A$ to choose the two messages and passes them on to his \texttt{Test} oracle.  $\B$ must then remap elements of the ciphertext from the HIBE setting to the WIBE setting, recall the anatomy of a ciphertext $C$ in the HIBE:
+
+\begin{align*}
+C_1 = t \cdot g_1\\
+C_{2,i} = t \cdot (u_{i,0} + (P_i) \cdot u_{i,1})\\
+C_3 = m \cdot e((\Sigma \alpha_i) \cdot g_1, g_2)^t
+\end{align*}
+
+Note that there are no $C_{4,i,j}$ elements because addresses in the HIBE do not have wildcards.  The challenge pattern $P^*$ lives in the WIBE setting and is allowed to contain wildcards, $\B$ must adjust the ciphertext for any wildcards present as follows:
+
+\begin{align*}
+C^\prime_1 = C_1\\
+C^\prime_{2,i} = C_{2,\pi(i)} \text{ for all } i \not\in W(P^*)\\
+C^\prime_3 = C_3\\
+C^\prime_{4,i,j} = C_1 \text{ for all } i \in W(P^*) \text{ and } j \in \{0,1\}
+\end{align*}
+
+This is a valid ciphertext because of our choice of $\hat u_{i,j} = g_1$ for all $i \in W(P^*)$.  This means that for $i \in W(P^*)$ the value needed for $C^\prime_{4,i,j} = t \cdot u_{i,j} = t \cdot g_1 = C_1$.  $\B$ returns this ciphertext to $\A$ as response to the $\A$'s \texttt{Test} query.  $\A$ responds with a guess of $c \in \{0,1\}$ as the proper value of $b$, which $\B$ repeats as her guess.  Any advantage in the IND-smWID-CPA game that $\A$ has is then transferred onto $\B$.
+
+\section*{BDDH to HIBE}
+
+Theorem:
+
+If the Bilinear Decisional Diffie-Hellman assumption holds then the multi-$\TA$ Boneh-Boyen HIBE scheme is IND-smID-CPA secure.
+
+Proof:
+
+We will assume the existence of an adversary $\A$, with non-negligible advantage in the IND-smID-CPA game to construct a new adversary $\B$ who, using $\A$ as a black box, gains a non-negligible advantage in the BDDH game. To start the BDDH game $\B$ is given a 5-tuple $\{g, g^a, g^b, g^c, Z\}$ with $g \in \mathbb{G}_1$ and $Z \in \mathbb{G}_2$, and must decide whether $Z = e(g,g)^{abc}$ or if $Z = e(g,g)^z$ for a random $z \in \mathbb{F_p}$.
+
+Initialization:
+
+$\B$ begins interacting with $\A$ announcing a set of $\TA$'s $(\TA_1, ..., \TA_n)$ available to form coalitions and a maximum hierarchy depth $L$.  $\A$ replies with a challenge identity $ID = (ID_1, ..., ID_j)$ for some $j < L$.
+
+Setup:
+
+$\B$ must construct a multi-$\TA$ HIBE for $\A$ and give parameters $g_1, g_2, u_{0,0}, u_{1,0}, ..., u_{L,0}, u_{0,1}, u_{1,1}, ..., u_{L,1}$ to $\A$.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%\bibliographystyle{plain}
+
+%\bibliography{}
+
+
+\end{document}

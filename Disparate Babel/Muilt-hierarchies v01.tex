@@ -1,0 +1,213 @@
+\documentclass{llncs}
+
+\usepackage{a4wide}
+\usepackage{amsmath,amssymb}
+\usepackage[LY1]{fontenc}
+\usepackage{baskerville}
+
+\newcommand{\A}{\mathcal{A}}
+
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\TA}{\mathit{TA}}
+
+\newcommand{\mpk}{\mathit{mpk}}
+\newcommand{\msk}{\mathit{msk}}
+
+\newcommand{\getsr}{\stackrel{{\scriptscriptstyle\$}}{\gets}}
+\newcommand{\adv}[2]{\mathit{Adv}_{#1}^{\tiny \texttt{#2}}}
+
+\title{Multiple Hierarchy Wildcard Encryption}
+\author{All Who Want To Play}
+%\institute{...}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+expressionism is an art movement typically characterised by its
+non-realistic representation of non-tangible nouns (such as emotions
+or situations). It centred in the New York in the post-surrealistic
+decades after the second World War, and, in particular, around Peggy
+Guggenheim's gallery ``Art of this Century''.
+\end{abstract}
+
+\section{Syntax}
+
+A multi-hierarchy WIBE consists of the following PPT
+algorithms/protocols:
+\begin{itemize}
+\item $\texttt{Setup}(1^{k},\TA)$: This algorithm is run
+once by a TA and outputs a master public key and master private key
+for that TA $(\mpk_{\TA},\msk_{\TA})\getsr
+\texttt{Setup}(1^{k},\TA)$. \medskip
+
+\emph{What's to prevent an attacker setting up his own TA under the
+name of a real coalition member and then hijacking the update
+coalition protocol? Are we going to assume trusted distribution of
+master public keys?}\medskip
+
+\item
+$\texttt{SetupCoalitionBroadcast}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}}))$: This algorithm creates a coalition
+between a set of TAs $\mathcal{C} = (\TA_{1},\ldots,\TA_{n})$. This
+algorithm outputs a list of messages $w_{i}$ to be sent to the TA
+$\TA_{i}$
+$((\TA_{1},w_{\TA_{1}}),\ldots,(\TA_{n},w_{\TA_{n}}))$.\medskip
+
+\item $\texttt{SetupCoalitionKeys}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}},w_{1}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}},w_{n}))$: The algorithm completes the setup
+of the coalition. After every member $\TA_{i}$ of the coalition has
+provided a message $w_{i}$ for $\TA$. It outputs a message $u_{\TA}$
+to be broadcast to every member of its hierarchy.
+\end{itemize}
+The system should be able to dynamically update the coalition. We
+may wish to change a coalition $\mathcal{C}$ into a coalition
+$\mathcal{C}'$. We assume that members $\mathcal{C} \cap
+\mathcal{C}'$ execute the $\texttt{UpdateCoalition}$ algorithms,
+while new members $\mathcal{C}\setminus \mathcal{C}'$ execute the
+$\texttt{JoinCoalition}$ algorithms. Excluded members
+$\mathcal{C}'\setminus \mathcal{C}$ are simply informed that they
+are no longer members of the coalition.
+\begin{itemize}
+%\item
+%$\texttt{AddCoalitionBroadcast}(\TA,\msk_{\TA},(\TA'_{1},\mpk_{\TA'_{1}}),\ldots,(\TA'_{n'},\mpk_{\TA_{n'}}))$:
+%This algorithm adds authorities $(\TA'_{1},\ldots,\TA'_{n'})$ to an
+%existing coalition. Each existing coalition member $\TA$ runs this
+%algorithm and sends the result messages $(w'_{1},\ldots,w'_{n'})$ to
+%the appropriate new TAs.\medskip
+%
+%\item
+%$\texttt{AddCoalitionKeys}(\TA,\msk_{\TA},(\TA'_{1},\mpk_{\TA'_{1}},w'_{1}),\ldots,(\TA'_{n'},\mpk_{\TA_{n'}},w'_{n}))$:
+%This algorithm outputs a message $u_{\TA}$ to be broadcast to its
+%own hierarchy in order to re-key the coalition.\medskip
+
+\item $\texttt{UpdateCoalitionBroadcast}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}}))$: This algorithm updates an existing
+coalition $\mathcal{C}$ contain $\TA$ to become a new coalition
+$\mathcal{C}'=(\TA,\TA_{1},\ldots,\TA_{n})$. This algorithm outputs
+a list of messages $w_{i}$ to be sent to the TA $\TA_{i}$. It should
+be noted that some $w_{i}$ may be empty, particularly if $\TA_{i}\in
+\mathcal{C}$.\medskip
+
+\item $\texttt{Join CoalitionBroadcast}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}}))$: A new authority $\TA$ which is joining
+an existing coalition to form a new coalition
+$\mathcal{C}'=(\TA,\TA_{1},\ldots,\TA_{n})$ uses this algorithm to
+produce a series of messages $w_{i}$ to be sent to
+$\TA_{i}$.\medskip
+
+\item $\texttt{UpdateCoalitionKeys}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}},w_{1}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}},w_{n}))$: The algorithm completes the
+updating of the coalition for existing members. After every member
+$\TA_{i}$ of the coalition has provided a (non-empty) message
+$w_{i}$ for $\TA$. It outputs a message $u_{\TA}$ to be broadcast to
+every member of its hierarchy.\medskip
+
+\item $\texttt{JoinCoalitionKeys}(\TA,\msk_{\TA},(\TA_{1},\mpk_{\TA_{1}},w_{1}),\ldots,
+(\TA_{n},\mpk_{\TA_{n}},w_{n}))$: This algorithm completes the
+joining of an existing coalition for new members. After every member
+$\TA_{i}$ of the coalition has provided a (non-empty) message
+$w_{i}$ for $\TA$, this algorithm outputs a message $u_{\TA}$ to be
+broadcast to every member of its hierarchy.
+\end{itemize}
+We now describe the algorithms required by the individual users.
+\begin{itemize}
+\item $\texttt{Extract}(\vec{ID},\ID',d_{\vec{\ID}})$: This
+algorithm outputs a decryption key $d_{\vec{\ID}\|\ID}$ for the
+identity $\vec{\ID} \| \ID$. The basic level has $\ID=\TA$ and
+$d_{\TA}=\msk_{\TA}$. \medskip
+
+\item
+$\texttt{ExtractCoalitionKey}((\TA_{1},\ldots,\TA_{n}),u_{\TA},d_{\ID})$:
+This algorithm outputs a user key $c_{\ID}$ for the coalition
+$\mathcal{C}=\{\TA,\TA_{1},\ldots,\TA_{n}\}$ by combining the
+broadcast key $u_{\TA}$ and their decryption key $d_{\ID}$.\medskip
+
+\item $\texttt{UpdateCoalitionKey}((\TA_{1},\ldots,\TA_{n}),u_{\TA},c_{\ID},d_{\ID})$:
+This algorithm outputs an updated user key $c'_{\ID}$ for the
+coalition $\mathcal{C}=\{\TA,\TA_{1},\ldots,\TA_{n}\}$ by combining
+the broadcast key $u_{\TA}$ with the user's decryption key $d_{\ID}$
+and existing coalition key $c_{\ID}$.\medskip
+
+\item $\texttt{Encrypt}((\TA_{1},\mpk_{\TA_{1}}),\ldots,(\TA_{1},\mpk_{\TA_{1}}),\mathit{P},m)$:
+This algorithm is used to encrypt a message $m$ to entities
+satisfying the pattern $\mathit{P}$ under the coalition formed by
+$(\TA_{1},\ldots,\TA_{n})$. It outputs a ciphertext $C$ or the
+invalid symbol $\perp$.
+\medskip
+
+\item $\texttt{Decrypt}$: It does what you'd expect...
+\end{itemize}
+
+\section{Security Model}
+
+The security model is parameterised by a bit $b$ involves a PPT
+attacker $\A$ which is initially given the input $1^k$ and access to
+the following oracles:
+\begin{itemize}
+\item $\texttt{CreateTA}(\TA)$: The oracle computes
+$(\mpk_{\TA},\msk_{\TA})\getsr \texttt{Setup}(1^{k},\TA)$ for the TA
+identity $\TA$ and returns $\mpk_{\TA}$. This oracle can only be
+queried once for each identity $\TA$.\medskip
+
+\item
+$\texttt{SetupCoalitionBroadcast}(\TA,(\TA_{1},\ldots,\TA_{n}))$:
+This oracle runs the $\texttt{SetupCoalitionBroadcast}$ algorithm on
+the appropriate inputs and returns $(w_{1},\ldots,w_{n})$.\medskip
+
+\item $\texttt{SetupCoalitionKeys}(\TA, (w_{1},\ldots,w_{n}))$: This
+oracle can only be queried if $\TA$ has been queried to the
+$\texttt{SetupCoalitionBroadcast}$ oracle with $n$ $\TA$'s in the
+coalition. The oracles runs the $\texttt{SetupCoalitionKeys}$
+algorithm assuming that message $w_{i}$ was sent by $\TA_{i}$. Note
+that this does not imply that all the TAs believe that they're in
+the same coalition.\medskip
+
+\item $\texttt{UpdateCoalition}$ oracles are similar to the
+above...\medskip
+
+\item $\texttt{CorruptTA}(\TA)$: The oracle returns $\msk_{\TA}$ and
+records that $\TA$ is corrupt.\medskip
+
+\item $\texttt{CorruptUser}(\TA,\vec{\ID})$: This oracle returns
+$d_{\vec{\ID}}$ for the identity $\vec{\ID}$ under the authority
+$\TA$. Note that given $d_{\vec{\ID}}$ the attacker can compute any
+coalition key $c_{\vec{\ID}}$. \medskip
+
+\item $\texttt{UserDecrypt}(\TA,\vec{\ID},C^{*})$: This oracle
+decrypts the ciphertext with the decryption key
+$d_{\vec{\ID}}$.\medskip
+
+\item $\texttt{CoalitionDecryption}(\TA,\vec{\ID},C^{*})$: This oracle
+decrypts the ciphertext with the decryption key
+$c_{\vec{\ID}}$.\medskip
+
+\item
+$\texttt{Test}(\TA_{1},\ldots,\TA_{n},\mathit{P},m_{0},m_{1})$: This
+oracle takes as input two messages $(m_{0},m_{1})$ of equal length.
+It encrypts the message $m_{b}$ for the coalition using
+$(\mpk_{\TA_{1}},\ldots,\mpk_{\TA_{n}})$ under the pattern
+$\mathit{P}$. This oracle may only be access once and outputs a
+ciphertext $C^{*}$. We will let $\mathcal{C}^{*}$ denote the
+challenge coalition $(\TA_{1},\ldots,\TA_{n})$.
+\end{itemize}
+The attacker terminates by outputting a bit $b'$. The attacker's
+advantage is defined to be:
+\begin{displaymath}
+%\adv{\A}{IND}
+\mathit{Adv}_{\A}^{\texttt{IND}}
+(k) = |Pr[b'=1|b=1]-Pr[b'=1|b=0]| \, .
+\end{displaymath}
+The disallowed oracle queries: (1) a \texttt{CorruptTA} query for
+any TA in the test coalition , (2) a \texttt{CorruptUser} query for
+any user $\ID$ matching the pattern $\mathit{P}$ under an authority
+$\TA$ in the test coalition if there has been a
+\texttt{SetupCoalitionKeys} or \texttt{UpdateCoalitionKeys} query
+for the test coalition, (3) a decrypt query for $C^{*}$ and any user
+$\ID$ matching the pattern $\mathit{P}$ under an authority $\TA$ in
+the test coalition if there has been a \texttt{SetupCoalitionKeys}
+or \texttt{UpdateCoalitionKeys} query for the test coalition.
+
+\bibliographystyle{plain}
+\bibliography{../../Master}
+\end{document}

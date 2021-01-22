@@ -1,0 +1,71 @@
+I think we need a military app. appearance with no "ghost" authority,
+only three levels, at most three entities on a level and - in my
+first vision - three TA's with a fourth on the side to be joined in.
+
+The text boxes are never going to be read. The namespace  box should
+be by example, the Contribution box should be at most four lines long
+and we need to make IBE vs PKI clear ...
+
+We have a lot of work to do so I'm going to begin with 10
+comments/suggestions (some of which are similar to what I wrote
+last night):
+
+1. Remember this is a very high level summary for a relatively
+  non-expert but smart audience. To that extent, there's way too much
+  text. I do like the box "Contributions" but the contents of that
+  box should be at most 4 lines long and only high level. We don't
+  need the whole abstract and certainly don't want to mention B-B
+  or a security model.
+
+2. Our names should appear (with affiliations) beneath the title.
+
+3. The "Forming a coalition" box may better be called, "Establishing
+  a Coalition" and there's no need for a "ghost". Further,
+"flavors"
+  and "colors" etc are nice for general exposition for not for the
+  ITA. I suggest we have 3 TA's in this box and call them,
+  US Army
+  UK Armed Forces
+  US Marines
+
+4. The hierarchies in the box above should have three levels (with
+  some "military visuals") and level two should be limited to 2
+entities
+  and levrel 3 to 3. If you really want variation, for one TA use
+  4 on level 3. The level should be named (like the second level called
+  Field Command - or some such thing), etc.
+
+5. Naming level 3 entities will feed directly into the NameSpace and
+  Wildcard (addressing) box.  Again, we don't want an abstract
+discussion
+  in this box but rather a very high level example based view of what
+  a name looks like and how a wildcard, when added, can extend the
+  range of recipients (corresponding, by example, to one in the large
+  box to the left).
+
+6. I'd get rid of the usage scenario box (did we have one before) and
+  use the "theme" that you seem to be developing on the bottom level
+  by having some sory of flow to "Add a New Coalition Member" (the
+  UK Air Force)
+
+7. I like the "Remove" member idea but this should be explained in the
+  boxes with very few words, jst a sense of what's involved without
+  technical details. Arrows for data sharing and flow would help.
+
+8. As Alex mentioned, we need to show this is IBE and not PKI based.
+  One way to do this, as we discussed, is to add into the main picture
+  the shared parameters - or some sense of them. Further, the
+  Namsapce box could make use of the IBE nature.
+
+9. The poster needs to be attractive and simple enough that visitors
+  will want to look and get the impression that the work is not simple -
+  but they need to be able to come away simply with the gist of what
+  we can do - as compared to what could be done before. A balance of
+  space and information (read top to bottom, left to right) is critical.
+
+10. In the main coalition box, there should be VERY few words. Right now
+   the poster is extremely word heavy. I'd like to see, in total, 1/3
+  of the number of words on the final version. There's little reason
+  to discuss HIBE's vs. WIBE's. That's not for this poster. Remember,
+  no one is going to spend more than 1 minute in front of this poster
+   and is going to want to read more than two or three sentences.

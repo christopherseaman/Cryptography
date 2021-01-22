@@ -1,0 +1,16 @@
+x	Mail list & request TeX
+~	Flesh out security model
+.	Merge into single paper
+.	Run-off lines
+.	Incorporate k into argument for |ID Space| = 2^k
+.	Define TA namespace (rather than fixed population of n TAs)
+.	Reintroduce groups, don't rely on previous sections so much
+.	Structure: 3 stages (describe algo, it approx model, breaks problem)
+.	Stepwise reduction of abstract scheme, not BB -> BDDH
+.	Counters for individual queries
+.	Guess TAs from H(1 || ID) queries, not CreateTA
+.	B outputs random guess on abort
+.	Instead of encapsulate, dummy query by B for case of no hash query
+	Probability argument in formulas
+	Probability argument in words (matching above)
+z	Arrange oral exam schedule

@@ -1,0 +1,37 @@
+There is a good basic structure here, but there are a lot of details missing. I've learnt (the hard way) to make my proofs as complete and clear as possible, even if it means that they're going to be too large to be included in any published version of the paper. It saves mistakes later and it would also be useful for your thesis. (Believe me on this -- you want your records to be as complete as possible for any piece of research which might end up in your thesis or you'll spend months trying to understand what you meant in a few years' time).
+
+Can someone remind me of the timeline we agreed upon?
+
+Comments:
+
+* I don't the title should suggest that we're going to provide "full security" as this suggests CCA2 security.
+
+* Para 1. Please provide proper references using a bibliography rather than notes in parentheses. If you've set up BiBTeX correctly then this should be very easy.
+
+* Para 2. You should reference the original paper on random oracles if you're going to discuss them in this fashion. The paper in question is Bellare-Rogaway '94. Just for future reference, you do not that the ROM is not sound, right? There are schemes which are provably secure in them ROM but insecure when the hash function is instantiated with any polynomial-time function -- see Canetti-Halevi-Goldreich '98.
+
+* Para starting "We note that a single". We have to be a little bit careful when turning one random oracle into many random oracles. The technique you suggest only works if (a) you know how many oracles you need in advance, and (b) you represent i using a fixed numbers of bits. Otherwise you run into the problem that 1||001 = 10||01 and so H_1(001) = H_2(01). Other techniques you can consider is to use an ordered pair (i,query) under the assumption that ordered pairs represent bitstrings which are reversible?
+
+* Theorem 1. Why are you simultaneously using (t', q'_H, \epsilon') notation and notation stating that A runs in time t and with advantage \epsilon? Surely one is enough? Have you defined the (t', q'_H, \epsilon') notation? What is q'_H?
+
+* Theorem 1. What is the relationship between t and t'? What is the relationship between \epsilon and \epsilon'? What is q_H? The IND-sHID-CPA scheme doesn't make use of a random oracle so I don't see why there would be a "number of ROM queries" term here. Lastly, why are you comparing the IND-WID-CPA security of the ROM scheme to the IND-sHID-CPA security of the non-ROM scheme? Surely you should be comparing the WID security in both cases?
+
+* Bullet 1. What is \ell?
+
+* Bullet 1. How is the challenge coalition chosen? In particular, how is n chosen? How are each of the TA_i chosen?
+
+* Bullet 1. How is \ell^* chosen?
+
+* Bullet 1. I think it's important to note somewhere that the hash function has fixed-length output. This is what allows us to pick the pattern at random (as we're picking a random element from a finite space).
+
+* Bullet 3. This isn't really an algorithmic step but a note. You can include it with another algorithmic step if you like, but it shouldn't be a bullet on its own.
+
+* Bullet 4. What do you mean "For other queries"? No query is handled directly by the oracle as the identities must be hashed before querying the oracle. I'd like you to restructure the proof using a series of sub-bullets. Start by explaining how the random oracle is simulated, then explain how each of the other oracles is simulated (and when I say this I don't mean write "and the other oracles work similarly" -- write them all out).
+
+* Bullet 5. You can't denote something "|T_i|=0" as you can't denote an equation.
+
+* Bullet 7. What if the hash queries aren't defined? I think you asked this question too. The solution is very simple: if A won't make the hash function query, then B makes the query on its behalf (by running its random oracle simulator on these inputs). This increases the choices for the ctr_i values by 1 (in other words, we choose ctr_i from {0,1,2,\ldots,q_{H}+1}.
+
+* The proof is not complete. You've provided the simulator (which seems to be broadly correct -- well done!) but you haven't provided any argument to demonstrate that the simulators responses appear correct to A; that B is legitimate attacker in the IND-sWID-CPA model (which may be problematic if a hash collision occurs as a hash collision may allow the attacker to query the extract oracle on an identity which doesn't match the challenge pattern in the ROM-scheme but does match the challenge pattern when you hash it); and that the advantage of B in winning the game is polynomially related to the advantage of A in winning the game.
+
+If you're having trouble with this then let me know. I think game hopping is the best technique, but it's up to you.

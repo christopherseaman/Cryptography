@@ -1,0 +1,903 @@
+\documentclass[10pt]{llncs}
+
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb}
+\usepackage{cite}
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\U}{\mathcal{U}}
+
+\newcommand{\Fbb}{\mathbb{F}}
+\newcommand{\Gbb}{\mathbb{G}}
+\newcommand{\Zbb}{\mathbb{Z}}
+
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\TA}{\mathit{TA}}
+
+\newcommand{\param}{\mathit{param}}
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+
+\newcommand{\getsr}{\stackrel{{\scriptscriptstyle\$}}{\gets}}
+\newcommand{\adv}[2]{\mathit{Adv}_{#1}^{\texttt{#2}}}
+
+\title{Broadcast Encryption with Multiple Trust Centers and Dynamic Coalitions}
+\author{Christopher A. Seaman\inst{1} \and
+        Kent D. Boklan\inst{2} \and
+        Alexander W. Dent\inst{3}}
+
+\institute{Graduate Center, City University of New York, USA \and
+            Queens College, City University of New York, USA \and
+            Royal Holloway, University of London, UK}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+We demonstrate an extension of hierarchical identity-based
+encryption (HIBE) from the domain of a single Trusted Authority (TA)
+to a coalition of multiple independent Trusted Authorities with
+their own hierarchies.  Coalitions formed under this scheme may be
+temporary or dynamic in membership without compromising security. In
+this paper we give an example instantiation with formal security
+model and a proof of security against selective-identity
+chosen-plaintext attacks in the standard model based upon the
+Bilinear Decisional Diffie-Hellman assumption (BDDH).
+\end{abstract}
+
+
+\section{Introduction and Motivation}
+\subsection{Identity-Based Encryption}
+Identity-based encryption (IBE)~\cite{Shamir84} has become an
+attractive alternative to public-key encryption schemes. A Public
+Key Infrastructure (PKI) allows for encryption only after obtaining
+a certified copy of the recipient's public key. Under identity-based
+encryption a message is encrypted using a personal identifier such
+as an email address rather than using a certified public key
+obtained from a PKI. The public key infrastructure is replaced by an
+identification system and a single public set of common parameters.
+
+Identity-based encryption is most often considered in the context of
+one-to-one communication within a single Trusted Authority (TA).
+This TA is the root arbiter of trust within its domain, it is
+trusted with the secret key from which it derives all decryption
+keys for individuals in the organization. In an IBE system an
+encrypted message may only be sent to a single entity within the
+domain of that specific TA. This paper considers a coalition of TA's
+desiring secure one-to-many communication, with each TA retaining
+the security of its secret keys.  This secrecy requirement is
+natural in the setting of dynamic coalitions.
+
+\subsection{Known Extensions of IBE}
+A hierarchical identity-based encryption (HIBE)
+scheme~\cite{Horowitz02} is an extension of identity-based
+encryption with identities organized in a tree with a single root
+master authority. An identity in non-hierarchical IBE is a unique
+single identifier, e.g. ``Bob Smith serial number 123456789''. An
+identity in a HIBE scheme is an ordered collection of identifiers
+which can mirror the organizational structure of the TA, e.g. (``US
+Army'', ``2-16 Infantry'', ``Bob''). Consider a two-level TA called
+the ``US Army'' with an analogous but simplified hierarchical
+structure. The first level of the hierarchy will identify a
+particular grouping of personnel, our examples use groupings at
+either the regiment or mission level, with the secret key for a
+grouping, e.g. (``US Army'', ``2-16 Infantry''), being held by its
+commanding officer. The second level will identify a specific
+individual or role within the grouping, our examples use
+individuals' names for this level. In a hierarchical IBE, as in
+regular IBE, encryption is accomplished by using the identity of a
+recipient in place of using the recipient's certified public key.
+
+The hierarchical structure is meant to mirror the trust or authority structure of the organization. Any entity in a HIBE can use its own secret key to generate a secret key for any subordinate. If the head of the 2-16 infantry battalion has the secret key for identity (``US Army'', ``2-16 Infantry'') then he is able to generate a secret keys of the form (``US Army'', ``2-16 Infantry'', ``Name''). Messages may then be decrypted by any `ancestor' capable of generating a secret key for the addressee, but a subordinate (or `child') is not capable of generating a secret key for or decrypting messages addressed to any ancestor. This characteristic of HIBEs makes it absolutely necessary that the root authority of the hierarchy have the full faith and confidence of all members of the hierarchy. The root authority holds the master key for the HIBE scheme, making it capable of generating a secret key for any entity in the hierarchy and decrypting any message sent using the scheme.
+
+    One-to-many secure communication is a powerful cryptographic tool.  Take a MANETs setting for example, where transmission is much more expensive than computation, one-to-many communication allows for a single transmitted message to be read by any number of valid recipients within range.  Multiple recipients may decrypt the same message through the use of one or more `wildcards'. A wildcard is a special character, commonly denoted `*', that may be used in an address in lieu of specifying a particular aspect of an identity. Anyone with an identifier matching the non-wildcard portion is then able to read the message.
+
+The method of employing wildcards into hierarchical identity-based
+encryption (WIBE) structures~\cite{Abdalla06} allows any individual
+to send messages to entire levels of a TA's hierarchy. To send a
+message to every member of a regiment in a HIBE, separate messages
+must be sent for individual in addressed as (``US Army'', ``2-16
+Infantry'', ``Samuel Adams''). In a wildcard HIBE setting a single
+message could be addressed to (``US Army'', ``2-16 Infantry'', *)
+which could then be read by each member of the regiment. A message
+addressed to the leadership of regiments could be sent to (``US
+Army'', *) allowing for quick dissemination of command-level
+materials. Wildcards are also useful in the middle level of a
+hierarchy, a message can be addressed as (``US Army'', *, ``John
+Locke'') to reach a ``John Locke'' regardless of his current
+regiment.
+
+The wildcard method of multicast communication is limited by the
+structure of the hierarchy: it cannot distinguish between entities
+within a single hierarchical level.  For example, a single message
+to (```US Army'',``Regiment'', *) could be read by (```US
+Army'',``Regiment'', ``Alice''), (```US Army'',``Regiment'',
+``Bob''), and (```US Army'',``Regiment'', ``Eve''); however, it
+would not be possible to send a single message to Alice and Bob
+without also allowing Eve to read it. Likewise, a message may be
+addressed to a single specified regiment or to all regiments by
+wildcard. In general, wildcard-based encryption allows you to
+specify either a single identity or all identities at each level of
+the hierarchy; it does not allow you to choose a specific subset of
+identities within a level of the hierarchy.
+
+Other researchers have considered the question of developing IBE
+systems with multiple trusted authorities. For example, a scheme
+proposed by Paterson and Srinivasan~\cite{Paterson08} and another by
+Boklan \emph{et al.}~\cite{Boklan08} introduced multi-TA IBE systems
+which allow trusted authorities to interact in order to derive a
+shared IBE system. The Paterson and Srinivasan~\cite{Paterson08}
+paper constructed an IBE scheme which supported multiple trust
+authorities in a way which makes it infeasible for an attacker to
+determine which trust authority's public parameters was used to form
+the ciphertext -- i.e.\ the ciphertext preserves the anonymity of
+the trust authority. However, the Paterson and Srinivasan scheme
+does not allow trust authorities to form trust coalitions. The
+Boklan \emph{et al.} scheme~\cite{Boklan08} allows trust authorities
+to cooperate to form trust coalitions, in the sense that within the
+coalition a private key issued by $\TA_i$ for an identity
+$\vec{\ID}$ can be translated into a private key issued by $\TA_j$
+for the same identity. However, in order to achieve this
+functionality, the scheme requires that the coalition TAs setup
+their master public parameters and master private keys
+simultaneously. Furthermore, every TA can deduce the master private
+key of every other TA. This is clearly a severe disadvantage for any
+setting where the TAs share anything less than complete trust in
+each others' intentions and security procedures. Neither scheme
+supports hierarchical identity-based encryption or one-to-many
+communication.
+
+
+\subsection{Our Contributions}
+
+%FIXME: structure: HIBE -> WIBE -> form a coalition -> dynamic reconfiguration -> instantiation (reqs)
+
+This paper extends the concept of multi-TA IBE schemes to include
+hierarchical structures. For a set of uniquely named trust
+authorities (``US Army'', ``US Navy'', ``UK Forces'', etc.) each
+with its own master secret used to create decryption keys for
+members of its hierarchy, the scheme put forward in this paper
+allows groups of these TA's to form coalitions without divulging
+secret information. Communication within a coalition is respectful
+of the original trust authority's hierarchy organizational
+structure, e.g. messages addressed to (``US Army'', ``1-75 Ranger
+Regiment'', ``William `Refrigerator' Perry'') may be decrypted by
+the same individual when sent using the multi-TA coalition scheme or
+sent using the ``US Army'' HIBE.
+
+The same wildcard techniques from Abdalla \emph{et
+al.}~\cite{Abdalla06} may be used to transition this coalition-based
+HIBE to a WIBE. Under this WIBE it is possible for anyone with the
+public parameters to encrypt a message to any wildcard-based pattern
+of identities. Under any coalition configuration, all members of the
+``US Army'' TA could be addressed as (``US Army'', *, *) even if the
+sender was not a member of that TA. A sender possessing the public
+parameters of a coalition does not need to lie in the domain of
+trust of any TA in order to be able to send a message. A message may
+only be decrypted by members of the same coalition it was encrypted
+under, and only by those holding a decryption key matching the
+addressed wildcard pattern. A message may be addressed to a single
+specified TA or to all TA's in a coalition by wildcard in the
+TA-level identity (*). It is only possible to select one or all TA's
+within a coalition; however, selecting a subset of member TA's could
+be achieved by forming another smaller coalition with these TA's.
+Note that a message broadcast to all TA's in a coalition remains
+secure against non-members of the coalition.
+
+Coalition formation is achieved through communication at the root
+level of trust authorities. Once a set of authorities agree to be
+members of a coalition they publish information to make a
+coalition-specific public key and for each TA to adjust their keys
+for the coalition.  This compatibility information may then be
+broadcast to subordinates of the TA hierarchy enabling them to adapt
+their decryption keys for use within the coalition.
+
+% [FIXME: DELETE?] Since forming coalitions does not compromise a TA's secret information these coalitions may be temporary or they may be dynamically reformed to accommodate new TA's or exclude undesired authorities.  TA's may be removed or added to the coalition with minimal configuration.  Upon a change in coalition make-up the participating TA's once again exchange public information, and again their secret information allows them to create compatible keys.  The private keys of subordinate entities of each TA must be adapted for use within the coalition. Once calculated, these adjustment parameters could be broadcast to members of that TA hierarchy in a single message.
+
+In this paper we offer an example instantiation based upon the
+Boneh-Boyen IBE~\cite{Boneh04} as extended to a WIBE by Abdalla
+\emph{et al.}~\cite{Abdalla06}.  The system requires a bilinear map with certain
+properties. The Weil or Tate pairing would be a suitable example of
+such a map. When applied to supersingular elliptic curves, these
+pairings are also efficient enough for practical purposes. Included
+is a proof of security against selective-identity chosen-plaintext
+attacks in the standard model based upon the Bilinear Decisional
+Diffie-Hellman assumption (BDDH). In specific instantiations,
+including the one presented, coalitions may be dynamically reformed
+more efficiently than forming a coalition from scratch.
+
+\subsection{Usage Scenario}
+
+As an example of our techniques, we propose the following highly simplistic usage scenario. We suppose that individuals in a force can be identified using the hierarchical identifier (``force name'', ``mission name'', ``individual name''). For example, an individual could be identified as (``US force'', ``Mission 12'', ``John Smith''). Our scheme allows an architecture in which a central facility for each force generates a master key-pair. The master public key is publicly distributed and is intended for long-term use. We will assume that all master public keys are known by all individuals in the scenario. The master private key is used by the central facility to derive keys for each hierarchical name (``force name'', ``mission name'', ``individual name'').
+
+These individual hierarchical encryption schemes can be used as independent WIBEs. In other words, any user in possession of a force's master public key and a hierarchical identifier (``force name'', ``mission name'', ``individual name'') may send a message that can only be read by that individual. Furthermore, the hierarchical identifier may include wildcard characters denoted as `*'. So, for example, a user could send a message to every individual on a mission using the hierarchical identifier (``force name'', ``mission name'', *) or to an individual on any mission using the hierarchical identifier (``force name'', *, ``individual name'').
+
+However, our scheme allows coalitions to be formed between forces.
+If two (or more) forces which to form a coalition, then the central
+facilities exchange some (public) information which then allow the
+central facility to send a broadcast message to every member of the
+force. This broadcast message allows the individuals to derive
+coalition decryption keys from their individual decryption keys. The
+individuals must be assured that the broadcast message is from their
+force's central facility, but the message is short and need not be
+confidential. These coalition keys allow individuals to decrypt
+messages sent to multiple forces simultaneously.
+
+For example, for a particular mission, the US and UK force may form
+a coalition. This allows messages to be sent to hierarchical
+identifiers of the form (``force name'', ``mission name'',
+``individual name'') where the force name either identifies a
+specific force or is a wildcard. In other words, to send a message
+to all individuals involved in the mission, one would merely have to
+send the message using the hierarchical name (*, ``mission name'',
+*) using the master public keys for the US and UK forces. This
+message could only be decrypted by an individual on the mission who
+has received the (public) broadcast update from their central
+facility which allows them to form the coalition key for the
+coalition containing the US forces and the UK forces.
+
+Furthermore, these coalitions can be dynamic in nature. So, in the
+above scenario, if the German force was later included in the
+mission, then broadcast messages could be sent to update coalition
+decryption keys to allow the US, UK, and German forces to decrypt
+messages. The German force members would not be able to read earlier
+messages, which were encrypted for the US and UK forces coalition
+only. If the US force retired from the mission, then the coalition
+keys could be updated so that only the UK and German forces could
+decrypt messages.
+
+\section{Syntax}
+A Trusted Authority is the root of a domain of trust with
+responsibilities over the namespace of its organization. The US Army
+could be a TA with its root authority addressed as (``US Army'')
+with levels of the hierarchy corresponding to successively finer
+groupings of members, the final level identifying a particular
+individual in the group specified. An example identity might then be
+(``US Army'', ``1st Infantry Division'', ``1st Brigade Combat
+Team'',``16th Infantry Regiment'', ``2nd Battalion'', ``Benjamin
+Button'').
+
+In general we will refer to a Trusted Authority $\TA_i$ as a
+hierarchy of identities of the form $\vec{\ID} = (\ID_1, \ID_2, ...,
+\ID_k)$ with the same first identity ($\ID_1 = \TA_i$) and maximum
+depth of $L$ such that $k \le L$. Given a population of $\TA$'s $\U
+= \{\TA_1, \TA_2, ..., \TA_n\}$ we define a coalition $\C = \{\TA_a,
+\TA_b, ..., \TA_k\} \subseteq \U$. We also define a pattern to be
+a vector of identities and wildcards, i.e. $P=(P_{1},\ldots,P_k)$
+where $P_{i} \in \{0,1\}^{*} \cup \{*\}$ for $1\leq i\leq k$. We say
+that an identity $\vec{\ID} = (\ID_{1},\ldots,\ID_{k})$ matches a
+pattern $P=(P_{1},\ldots,P_{k})$, written $\vec{\ID} \in_{*} P$, if
+$P_{i} \in \{ \ID_{i}, *\}$ for all $1\leq i\leq k$. A
+multi-hierarchy WIBE consists of the following PPT
+algorithms/protocols:
+
+\begin{itemize}
+
+\item $\texttt{CreateTA}$: This algorithm creates the master
+ public/private keys for a trust authority with a particular
+ name (``$\TA_i$''). This algorithm would be run by the central
+ facility of a particular trust authority. The master public key
+ is publicly distributed to everyone that would potentially send
+ messages to the TA's hierarchy or form a coalition with the
+ trust authority. The private key must be kept secret and is
+ only used to create decryption keys for individuals in the
+ hierarchy. Formally the algorithm takes as input the proposed
+ name for the trusted authority (``$\TA_i$'') and outputs a
+ master key-pair $(\pk_i, \sk_i)$, written $(\pk_i, \sk_i)
+ \getsr \texttt{CreateTA}($``$\TA_i$''$)$.
+\medskip
+
+\item $\texttt{SetupCoalitionBroadcast}$: This algorithm allows a
+central facility to share the information necessary to
+initialize coalitions. Once a set of trust authorities agree to
+setup a coalition between them, then each trust authority runs
+this algorithm to produce the information which allows the other
+trust authorities in the coalition to produce coalition keys for
+the members of its hierarchy. For some coalition $\C \subseteq
+\U$ containing $\TA_i$, trust authority $\TA_i$ uses it's secret
+key and the public keys of participating authorities to generate
+public parameters specific to each other authority. These
+parameters allow the other coalition members to include $\TA_i$
+in a coalition. This is written as $(w_{i,j}: \TA_j \in \C
+\setminus \TA_i) \getsr \texttt{SetupCoalitionBroadcast}(\TA_i,sk_{i}, \C, \{pk_j :
+\TA_j \in \C\})$, where the information $w_{i,j}$ is sent from
+$\TA_i$ to $\TA_j$. These values are stored by $\TA_j$ for later
+use in the \texttt{SetupCoalitionKeys} algorithm.
+\medskip
+
+\item $\texttt{SetupCoalitionKeys}$: This algorithm completes the
+setup of the coalition $\C$ $=$ $\{\TA_a, \TA_b, ..., \TA_k\}
+\subseteq \U$. After every member $\TA_{i}$ of the coalition has
+provided a message $w_{i,j}$ to $\TA_j$, trust authority $\TA_j$
+uses this algorithm to combine those messages to allow creation
+of coalition-specific secret keys. It outputs a message $v_j$ to
+be broadcast to every member of $\TA_j$'s hierarchy in order who
+then run the \texttt{ExtractCoalitionKey} algorithm to obtain
+their individual secret keys specific to coalition $\C$.
+Written, $v_j \getsr \texttt{SetupCoalitionKeys}(\TA_j,sk_j,
+\C, \{w_{i,j} : \TA_i \in \C \setminus \TA_j\})$.
+
+\end{itemize}
+
+%[FIXME: REWRITE] A coalition of TA's may desire to change the coalition's membership by adding and removing authorities, to change from a coalition $\C$ to a coalition $\C'$. Persistent members of $\C \cap \C'$ execute the $\texttt{SetupCoalitionBroadcast}$ algorithm to broadcast messages to new members of $\C' \setminus \C$. New members also run $\texttt{JoinCoalition}$, but broadcast messages to all members of coalition $\C'$. Excluded members $\C'\setminus \C$ are excluded and left unable to communicate under the new coalition.
+
+We now describe the algorithms required by the individual users.
+
+\begin{itemize}
+\item \texttt{Extract}: This algorithm is used by an individual in
+the domain of a trust authority to generate private keys for
+their subordinates. This key-generating entity may be a member
+of any level of the hierarchy, except for the deepest level
+allowed ($L$), including the root authority. The keys generated
+are specific to the TA's HIBE, although they may later be
+adjusted for use in a coalition environment. For entity
+$\vec{\ID} = (\ID_1, \ID_2, ..., \ID_k)$ extracting a private
+key for subordinate $\vec{\ID}\|\ID' = (\ID_1, \ID_2, ...,
+\ID_k, \ID')$ the algorithm outputs $d_{\vec{\ID}\|\ID'} \getsr
+\texttt{Extract}(\vec{\ID},d_{\vec{\ID}}, \ID')$.
+\medskip
+
+\item \texttt{ExtractCoalitionKey}: Users in a trust authority's
+hierarchy may use this algorithm to adapt their TA-specific HIBE
+private key for use within a coalition. To accomplish this their
+TA, $\TA_i$, must provide an adjustment parameter $v_i$ to be
+combined with the user's private key $d_{\vec{\ID}}$. The
+adjustment parameter is specific to a particular coalition $\C$
+containing $\TA_i$, it is generated by the
+\texttt{SetupCoalitionKeys} algorithm. A user generates its
+coalition key as $c_{\vec{\ID}}\gets
+\texttt{ExtractCoalitionKey}(d_{\vec{\ID}}, v_i)$. If the coalition
+key is undefined, then we assume that $c_{\vec{\ID}} =
+d_{\vec{\ID}}$, i.e.\ the decryption key for the coalition which
+contains only the user's trust authority.
+\medskip
+
+\item \texttt{Encrypt}: This algorithm can be used by an individual
+to encrypt a message $m$ to any individual whose identity
+matches a pattern $P$ in the trust domain of a coalition $\C$.
+This is computed as $C \getsr \texttt{Encrypt}(P,m,\C,\{pk_i :
+\TA_i \in \C\})$.
+\medskip
+
+\item \texttt{Decrypt}: This algorithm can be used to decrypt a
+ciphertext $C$ under a coalition key $c_{\vec{\ID}}$ and outputs
+either a message $m$ or the error symbol $\perp$. We write this
+operation as $\texttt{Decrypt}(c_{\vec{\ID}},C)$. If no
+coalition is currently defined, then $c_{\vec{\ID}} \gets
+d_{\vec{\ID}}$.
+\end{itemize}
+
+For correctness, we require that the decryption algorithm ``undoes''
+the action of the encryption algorithm. Formally, we consider any
+collection of TA's $\C = \{\TA_{1},\ldots,\TA_{n}\}$, with
+$(\pk_{i},\sk_{i}) \getsr \texttt{CreateTA}(\TA_{i})$, which form a
+coalition by computing
+\begin{displaymath}
+\begin{array}{c}
+\{ w_{i,j} : \TA_{j} \in \C \setminus \{ \TA_{i}\}\} \getsr
+\texttt{SetupCoalitionBroadcast}(\TA_{i},\sk_{i},\C,\{\pk_{j} :
+\TA_{j} \in \C\}) \mbox{ for all } \TA_{i} \in \C\\
+v_{j} \getsr \texttt{SetupCoalitionKeys}(\TA_{j},\sk_{j},\C,\{w_{i,j}: \TA_{i}
+\in \C \setminus \{\TA_{j}\}\}) \mbox{ for all } \TA_{j} \in \C \, .
+\end{array}
+\end{displaymath}
+Then for any identity $\vec{\ID}$ and pattern $P$ satisfying
+$\vec{\ID} \in_{*} P$ and $\ID_{1} = \TA_{i} \in \C$, we form the
+coalition key $c_{\vec{\ID}}$ for $\vec{\ID}$ by computing
+\begin{displaymath}
+\begin{array}{c}
+d_{\vec{\ID}} \getsr \texttt{Extract}(\TA_{i},\sk_{i},\vec{\ID})\\
+c_{\vec{\ID}} \getsr \texttt{ExtractCoalitionKey}(d_{\vec{\ID}},v_{i}) \, .
+\end{array}
+\end{displaymath}
+In this situation, we demand that if $C
+\getsr \texttt{Encrypt}(P,m,\C,\{\pk_{i} : \TA_{i} \in \C\})$ then
+$\texttt{Decrypt}(c_{\vec{\ID}},C) = m$.
+
+\section{Boneh-Boyen-Based Instantiation}
+
+We instantiate the notion of multi-TA WIBEs by extending the
+Boneh-Boyen WIBE~\cite{Abdalla06}. Our scheme is utilizes two
+(multiplicatively-written) cyclic groups $\Gbb$ and $\Gbb_{T}$ with
+prime order $p$ for which there exists a non-degenerate bilinear map
+$e : \Gbb \times \Gbb \rightarrow
+\Gbb_{T}$, i.e. we require that if $g$ is a generator of $\Gbb$ then
+$e(g,g) \neq 1$ and $e(g^{a},g^{b}) = e(g,g)^{ab}$ for all $a,b \in
+\Zbb_{p}$. Furthermore, we assume that this map is efficiently
+computable. In practice, we can instantiate $\Gbb$ as a prime-order
+subgroup of a supersingular elliptic curve group and $\Gbb_{T}$ as a
+multiplicative subgroup of $\Fbb_{p^{r}}$ for some value $r$, where
+the bilinear map is instantiated using the Weil or Tate pairing. For
+more information on this topic, the reader is referred to Blake,
+Serrousi and Smart \cite{Blake99,Blake05} or Galbraith, Paterson and
+Smart \cite{Galbraith08}.
+
+Our scheme requires some general parameters which are used by all
+trust authorities. These include descriptions of the groups
+$(\Gbb,\Gbb_{T})$, the prime $p$ and a description of the bilinear
+map $e$. However, we require that the general parameters include
+some randomly generated group elements. In particular, if the
+maximum hierarchy depth under each trust authority is $L-1$, then we
+require the group elements:
+\begin{displaymath}
+g_{1}, g_{2} \getsr \Gbb^{*} \qquad \qquad u_{i,j} \getsr \Gbb^{*}
+\mbox{ for } 1\leq i\leq L \mbox{ and } j\in \{0,1\} \, .
+\end{displaymath}
+It is vitally important that the group elements are generated
+randomly and that no extra information about the group elements are
+revealed. In particular, the discrete logarithms of these group
+elements must be unknown. The group descriptions can be provided by
+standardization body in a manner similar to the NIST
+curves~\cite{NISTcurves}. The group elements can be chosen using
+well-known techniques, for example by mapping a randomly chosen
+bitstring onto the curve. We let $\param$ denote these general
+parameters. Our scheme will regard identities as elements of
+$\Zbb_{p}$ and is described as follows:
+
+\begin{itemize}
+\item $\texttt{CreateTA}(\TA_i)$: The TA generates $\alpha_i \getsr \Zbb_{p}$ and computes master public key $pk_i \gets g_{1}^{\alpha_i}$. The TA's private key is defined to be $\sk_i \gets g_{2}^{\alpha_i}$.\medskip
+
+\item $\texttt{Extract}(\vec{\ID},\ID',d_{\vec{\ID}})$: Recall that we regard a hierarchical identity as beginning with the trusted authority's identity; hence an identity tuple $\vec{ID}$ the first element $ID_1$ will always equal that identity's trusted authority $\TA_i$. If the trusted authority $(\TA_i) = \vec{\ID}$ wishes to derive a key for a directly subordinate identity $(\TA_i, \ID')$, the trusted authority generates the private key $d_{(\TA_i, \ID')} = (h, a_1, a_2)$, where
+
+\begin{displaymath}
+    r_{1},r_{2} \getsr \Zbb_{p} \qquad  h \gets
+    g_{2}^{\alpha_{i}} (u_{1,0} \cdot u_{1,1}^{ID_{1}})^{r_{1}}
+    (u_{2,0} \cdot u_{2,1}^{ID_{2}})^{r_{2}} \qquad a_{1} \gets
+    g_{1}^{r_{1}} \qquad a_{2} \gets g_{1}^{r_{2}} \, .
+\end{displaymath}
+
+An entity with identity $\vec{\ID} = (\ID_1, \ID_2, ..., \ID_k)$
+holding private key $d_{\vec{\ID}} = (h, a_1, a_2, ..., a_k)$
+may derive a private key for identity $(\ID_1, \ID_2, ...,
+\ID_k, \ID')$. This private key is generated as $d_{(\ID_1,
+\ID_2, ..., \ID_k, \ID')} = (h', a_1, a_2, ..., a_k, a_{k+1})$,
+where $a_1$ through $a_k$ are retained and
+
+\begin{displaymath}
+    r \getsr \Zbb_{p} \qquad  h' \gets h (u_{k+1,0} \cdot
+    u_{k+1,1}^{ID'})^r \qquad a_{k+1} \gets g_{k+1}^{r} \, .
+\end{displaymath}
+
+\item $\texttt{SetupCoalitionBroadcast}(\TA_i, \C)$: For $\TA_j \in \C$, $\TA_i$ randomly generates $r_{j}\getsr \Zbb_{p}$ and computes
+\begin{displaymath}
+    w_{i,j,0} \gets g_{2}^{\alpha_i}(u_{0,0} \cdot
+    u_{0,1}^{\TA_{j}})^{r_{j}} \qquad w_{i,j,1} \gets
+    g_{1}^{r_{j}}
+\end{displaymath}
+
+where $\TA_{j} \in \Zbb_{p}$ is the identity of $\TA_{j}$. The
+algorithm sets $w_{i,j}=(w_{i,j,0},w_{i,j,1})$ and outputs a
+list of TA/message pairs $w_{i,j} \, \forall \TA_j \in \C
+\setminus \TA_i$.\medskip
+
+\item $\texttt{SetupCoalitionKeys}(\TA_i,sk_i, \C, \{w_{j,i} : \TA_j \in \C \})$: After receiving all the messages $w_{j,i}$ from every $\TA_j \in \C$, the algorithm outputs the $\TA_i$-specific, coalition-specific adjustment parameter $v_i$ as
+\begin{displaymath}
+    v_i \gets (\prod_{\TA_j \in \C \setminus \TA_i} w_{j,i,0},
+    \prod_{\TA_j \in \C \setminus \TA_i} w_{j,i,1})
+\end{displaymath}
+\medskip
+
+\item $\texttt{ExtractCoalitionKey}(\C,v_i,d_{\vec{\ID}})$: Parse $v_i$ as $(v_{i,0}, v_{i,1})$. A user with private key $(h,a_{0},a_{1},a_{2},\ldots,a_{\ell})$ can form a coalition key $(h',a'_{0},a_{1},a_{2},\ldots,a_{\ell})$ where
+\begin{eqnarray*}
+    h' & \gets & h \cdot v_{i,0} = h \prod_{\TA_j \in \C \setminus \TA_i} w_{j,0} = g_{2}^{\sum \alpha_{j}}(u_{0,0} \cdot u_{0,1}^{\TA})^{\sum r_{j}} \\
+    a'_{0} & \gets & a_{0} \cdot v_{i,1} = a_0 \prod_{\TA_j \in \C \setminus \TA_i} w_{j,1} = g_{1}^{r+\sum r_{j}}
+\end{eqnarray*}
+
+\item $\texttt{Encrypt}(P,m, \C, \{\pk_{j} : \TA_{j} \in \C\})$: Let $\ell$ be the depth of the pattern and $W(P)$ be the set of levels which have wildcard characters. The sender chooses $t\getsr \Zbb_{p}$ and computes the ciphertext $C=(C_{1},C_{2,1},...,C_{2,\ell},C_{3})$ where
+\begin{eqnarray*}
+    C_{1} & \gets & g_{1}^{t} \\
+%   C_{2,0} & \gets & (u_{0,0}\cdot \prod_{i=1}^{n} u_{0,1}^{\TA_{i}})^{t}\\
+    C_{2,i} & \gets & \left\{
+        \begin{array}{ll}
+            (u_{i,0} \cdot u_{i,1}^{P_{i}})^{t} & \qquad \mbox{if } i \notin W(P) \\
+            (u_{i,0}^{t},u_{i,1}^{t}) & \qquad \mbox{if } i \in W(P)
+        \end{array}
+    \right. \\
+    C_{3} &\gets& m \cdot e(\prod_{\TA_{j}\in \C} pk_j,g_{2})^{t}
+\end{eqnarray*}
+The ciphertext produced here is coalition-specific as it depends
+on the public keys of all the trust authorities in the
+coalition. A wildcard may be used at the TA identifier level
+(i.e. $P_{1} = *$) to address all the trust authorities in the
+coalition.
+
+\item $\texttt{Decrypt}(\vec{\ID},c_{\vec{\ID}},C)$: Parse $\vec{\ID}$
+as $(\ID_{1},\ldots,\ID_{\ell})$, $c_{\ID}$ as
+$(h,a_{1},\ldots,a_{\ell})$, and $C$ as
+$(C_{1},C_{2,1},\ldots,C_{2,\ell},C_{3})$. For each $i\in W(P)$,
+parse $C_{2,i}$ as $(\tilde{u}_{i,0},\tilde{u}_{i,1})$. We
+recover a complete HIBE ciphertext by setting $C'_{2,i} \gets
+C_{2,i}$ if $i\notin W(P)$, and $C'_{2,i}\gets \tilde{u}_{i,0}
+\cdot \tilde{u}_{i,1}^{\ID_{i}}$ if $i\in W(P)$. Recover
+\begin{eqnarray*}
+    m' & \gets & C_{3} \frac{\prod_{i=1}^{\ell} e(a_{i},C'_{2,i})}{e(C_{1},h)}
+\end{eqnarray*}
+
+and return $m'$.
+\end{itemize}
+
+A multi-trust-authority HIBE scheme may be designed analogously
+except that we remove the possibility of the pattern containing
+wildcards. For both schemes, we note that we can quickly reconfigure
+a coalition by re-using existing values of $w_{i,j}$ between trust
+authorities that have previously been exchanged coalition messages.
+
+\section{Security Results}
+
+\subsection{Security Model}
+
+We provide a definition for the selective-identity IND-CPA security
+of a multi-TA WIBE. This is a weak notion of security, but serves as
+a basis for assessing the security of Boneh-Boyen scheme and as a
+basis for developing more complex security models. A
+selective-identity IND-CPA security model for a multi-TA HIBE can be
+defined in an analogous way.
+
+The security model is presented as a game played between a
+probabilistic polynomial-time attacker $(\A_{0},\A_{1},\A_{2})$ and
+a hypothetical challenger. The sID-IND-CPA security game runs as
+follows:
+\begin{enumerate}
+\item The attacker runs $\A_{0}(1^{k})$. The attacker outputs a
+challenge coalition $\C^{*}$ and a challenge patter
+$P^{*}=(P^{*}_{1},\ldots,P^{*}_{k})$, where $P^{*}_{1} \in
+\C^{*}$ or $P^{*}_{1} = *$, along with some state information $\mathit{state}$.
+\item The challenger generates any general parameters $\param$ and
+public/private keys for each trust authority in the challenge
+coalition $(\pk_{i},\sk_{i}) \getsr
+\texttt{CreateTA}($``$\TA_{i}$''$)$ (for $\TA_{i} \in \C^{*}$).
+\item The attacker runs $\A_{1}$ on the input $(\param,\mathit{PK},\mathit{state})$
+where $\mathit{PK} = \{ \pk_{i} : \TA_{i} \in \C^{*}\}$.
+$\A_{1}$ may query the following oracles during its execution:
+\begin{itemize}
+\item $\texttt{CreateTA}(\TA)$: The oracle computes $(pk_i,sk_i)\getsr \texttt{Setup}(1^{k},\TA)$ for the TA identity $\TA_i$ and returns $pk_i$. This oracle can only be queried once for each identity $\TA_i$.
+
+\item $\texttt{SetupCoalitionBroadcast}(\TA_i,\C)$: This oracle runs the $\texttt{SetupCoalitionBroadcast}$ algorithm for coalition $\C$ containing $\TA_i$ and returns messages $w_{i,j} : \TA_j \in \C \setminus \TA_i$.
+
+\item $\texttt{SetupCoalitionKeys}(\TA_i, \C, \{w_{j,i} : \TA_j \in \C \setminus \TA_i\})$: The oracle runs the $\texttt{SetupCoalitionKeys}$ algorithm assuming that message $w_{j,i}$ was sent by $\TA_{j}$ and returns the resulting message $v_{i}$. Note that this does not imply that all the TAs believe that they're in the same coalition or that $w_{i,j}$ has been return by the \texttt{SetupCoalitionBroadcast} oracle.
+
+\item $\texttt{Corrupt}(\vec{\ID})$: The oracle returns $d_{\vec{\ID}}$ for the identity $\vec{\ID}$.  Note that if $\vec{\ID} = TA_i$ then this method returns $\TA_i$'s secret key $sk_i$.
+\end{itemize}
+The attacker $\A_{1}$ terminates with the output of two
+equal-length messages $(m_{0},m_{1})$ and some state information
+$\mathit{state}$.
+\item The challenger randomly chooses a bit $b\getsr \{0,1\}$ and
+computes the ciphertext $C^{*} \getsr
+\texttt{Encrypt}(P^{*},m,\C^{*},\mathit{PK})$ where $\mathit{PK} = \{ \pk_{i} : \TA_{i} \in \C^{*}\}$.
+\item The attacker runs $\A_{2}$ in the input
+$(C^{*},\mathit{state})$. The attacker $\A_{2}$ may query the
+same oracle in the previous phase of the security game. The
+attacker terminates with the output of a bit $b'$.
+\end{enumerate}
+The attacker wins the game if $b=b'$ and the attacker did not make a
+\texttt{Corrupt} query for any $\vec{\ID}$ for which there
+exists $\vec{\ID'}$ such that $\vec{\ID}\|\vec{\ID'} \in_{*} P^{*}$.
+An attacker which did not make such an oracle query is defined to
+have an advantage:
+\begin{eqnarray*}
+    & \adv{\A}{IND}(k) = |\Pr[b'=1|b=1]-\Pr[b'=1|b=0]| \, .
+\end{eqnarray*}
+
+\subsection{The Security of the Boneh-Boyen Multi-TA WIBE}
+
+The intuition behind the multi-TA Boneh-Boyen scheme is that any
+coalition of trust authorities can be viewed as an extended
+hierarchy with a ``ghost'' trust authority. Each actual trust
+authority is represented as a first-level identity under this ghost
+TA and, through communication with the other trust authorities in
+the coalition, is able to determine a private key for their
+first-level identity under the ghost TA. More specifically, if we
+consider a coalition $\C = \{ \TA_{1},\ldots,\TA_{n}\}$ in which
+each TA has a private key $\sk_{i} = g_{2}^{\alpha_{i}}$, then the
+ghost TA will have a private key $g_{2}^{\sum \alpha_{i}}$. Upon
+forming the coalition, the trust authority $\TA_{j}$ receives the
+messages
+\begin{displaymath}
+w_{i,j,0} \gets g_{2}^{\alpha_{i}} (u_{0,0} \cdot
+u_{0,1}^{\TA_{j}})^{r_{i}} \qquad w_{i,j,1} \gets g_{1}^{r_{i}}
+\end{displaymath}
+from each $\TA_{i} \in \C \setminus \{TA_{j}\}$. This allows
+$\TA_{j}$ to form the private key
+\begin{displaymath}
+h \gets g_{2}^{\sum_{i} \alpha_{i}} (u_{0,0} \cdot
+u_{0,1}^{\TA_{j}})^{\sum_{i\neq j} r_{i}} \qquad a_{1} \gets
+g_{1}^{\sum_{i\neq j} r_{i}}
+\end{displaymath}
+which is precisely the key that would be obtained if the ghost TA
+were to distribute a private key to the identity $\TA_{j}$. The
+security of multi-TA scheme then essentially follows from the
+security of the single-TA WIBE scheme, although care must be taken
+to show that the broadcast messages $w_{i,j}$ and $v_{i}$ do not
+leak information about the private keys to the attacker.
+
+The Boneh-Boyen multi-TA WIBE scheme we have presented is secure in
+the sID-IND-CPA security model under the Bilinear Decision
+Diffie-Hellman (BDDH) problem. This can be defined as:
+\begin{definition}
+Let $p$ be a prime of length $k$, let $\Gbb$ and $\Gbb_{T}$ be
+cyclic groups of order $p$, let $g$ a generator for $\Gbb$, and let
+$e:\Gbb \times \Gbb \rightarrow \Gbb_{T}$ be a bilinear map. Let
+$D_{k}$ be the distribution $\vec{x} \gets
+(g,g^{a},g^{b},g^{c},e(g,g)^{abc})$ where $a,b,c \getsr \Zbb_{p}$.
+Let $R_{k}$ be the distribution $\vec{x} \gets
+(g,g^{a},g^{b},g^{c},Z)$ where $a,b,c \getsr \Zbb_{p}$ and $Z\getsr
+\Gbb_{T}$. An algorithm $\A$ has advantage $\adv{\A}{BDDH}(k)$ against the
+Bilinear Decision Diffie-Hellman problem if
+\begin{displaymath}
+\adv{\A}{BDDH}(k) = |\Pr[\A(\vec{x})=1 \,|\, \vec{x} \getsr D_{k}] -
+\Pr[\A(\vec{x})=1 \,|\, \vec{x} \getsr R_{k}]| \, .
+\end{displaymath}
+\end{definition}
+We shall assume that it is infeasible for any probabilistic
+polynomial-time attacker to solve the BDDH problem on the groups
+$(\Gbb,\Gbb_{T})$. We may then prove the following theorems:
+
+\begin{theorem}
+Suppose that there exists an attacker $\A$ against the
+selective-identity multiple TA Boneh-Boyen WIBE that runs in time
+$t$ and with advantage $\adv{\A}{WIBE}(k)$, then there exists an
+attacker $\B$ against the selective-identity multiple TA Boneh-Boyen
+HIBE that runs in time $t'$ and with advantage $\adv{\B}{HIBE}(k)$
+where $t \approx t'$ and $\adv{\A}{WIBE}(k) = \adv{\B}{HIBE}(k)$.
+\end{theorem}
+
+\begin{theorem}
+If there exists an attacker $\A$ against the selective-identity
+multi-TA IND-WID-CPA secure of the Boneh-Boyen HIBE that runs in
+time $t$, makes at most $q_{K}$ queries to the \texttt{Corrupt}
+oracle, and has advantage $\adv{\A}{HIBE}(k)$, then there exists an
+algorithm $\B$ that solves the DBDH problem that runs in time
+$t'=O(t)$ and has advantage $\adv{\B}{BDDH}(k)
+\geq \adv{\A}{HIBE}(k)/2 -q_{K}/2p$.
+\end{theorem}
+
+The proofs of these theorems are given in Appendix~\ref{app:proof}
+but we can conclude the following:
+
+\begin{corollary}
+If the BDDH problem is difficult, then the Boneh-Boyen multi-TA WIBE
+scheme is secure in the sID-IND-CPA security model.
+\end{corollary}
+
+\bibliographystyle{alpha}
+\bibliography{metacart}
+
+\appendix
+\section{Security Proofs} \label{app:proof}
+
+\begin{theorem}
+Suppose that there exists an attacker $\A$ against the sID-IND-CPA
+security of the multi-TA Boneh-Boyen WIBE that runs in time $t$ and
+with advantage $\adv{\A}{WIBE}(k)$, then there exists an attacker
+$\B$ against the sID-IND-CPA security of the multi-TA Boneh-Boyen
+HIBE that runs in time $t'$ and with advantage $\adv{\B}{HIBE}(k)$
+where $t \approx t'$ and $\adv{\A}{WIBE}(k) = \adv{\B}{HIBE}(k)$.
+\end{theorem}
+\emph{Proof} We directly describe the algorithm $\B$ which breaks the
+HIBE using the algorithm $\A$ as a subroutine. Before we begin, we
+define some useful notation. If $P=(P_{1},\ldots,P_{k})$ is a
+pattern, then
+\begin{displaymath}
+W(P) = \{ 1\leq i\leq k : P_{i} = *\} \qquad \qquad W(P_{\leq j}) =
+\{ 1\leq i\leq \min\{j,k\} : P_{i} = *\}
+\end{displaymath}
+The algorithm $\B$ runs as follows:
+\begin{enumerate}
+\item $\B$ runs $\A_{0}$ on the security parameter. $\A_{0}$ responds by
+outputting a description of the challenge coalition $\TA^{*} =
+(\TA^{*}_{1},\ldots,\TA^{*}_{n})$ and the challenge pattern
+$P^{*} = (P^{*}_{1},\ldots,P^{*}_{\ell^{*}})$. Let $\pi$ be a
+map which identifies the number of non-wildcard entries in the
+first $i$ layers of $P^{*}$, i.e. $\pi(i) = i - |W(P^{*}_{\leq
+i})|$. $\B$ outputs the challenge coalition $\TA^{*}$ and the
+challenge identity
+$\hat{\ID}^{*}=(\hat{\ID}^{*}_{1},\ldots,\hat{\ID}^{*}_{\pi(\ell^{*})})$
+where $\hat{\ID}^{*}_{\pi(i)} = P^{*}_{i}$ for $i\notin
+W(P^{*})$.
+\item $\B$ responds with HIBE parameters $\mathit{param} = (\hat{g}_{1},\hat{g}_{2},\hat{u}_{1,0},\ldots,\hat{u}_{L,1})$. $\B$ generates WIBE parameters as follows:
+    \begin{displaymath}
+    \begin{array}{rcll}
+    (g_{1},g_{2}) &\gets& (\hat{g}_{1},\hat{g}_{2})&\\
+    u_{i,j} &\gets& \hat{u}_{\pi(i),j} &\mbox{ for } i\notin W(P^{*}), j\in\{0,1\}\\
+    u_{i,j} &\gets& g_{1}^{\beta_{i,j}} &\mbox{ for } i\in W(P^{*}), j\in\{0,1\}\mbox{ where } \beta_{i,j}\getsr \Zbb_{p}\\
+    u_{i,j} &\gets& \hat{u}_{i-|W(P^{*})|,j} &\mbox{ for } i\in \{\ell^{*}+1,\ldots,L\}, j\in\{0,1\}
+    \end{array}
+    \end{displaymath}
+\item $\B$ executes $\A_{1}$ on the public parameters $(g_{1},g_{2},u_{0,0},\ldots,u_{L,1})$. $\A$ may make the following oracle queries:
+    \begin{itemize}
+    \item \texttt{CreateTA}: $\B$ forwards this request to its own oracle and returns the response.
+    \item \texttt{SetupCoalitionBroadcast}: $\B$ forwards this request to its own oracle and returns the response.
+    \item \texttt{SetupCoalitionKeys}: $\B$ forwards this request to its own oracle and returns the response.
+    \item \texttt{Corrupt}: To an extract a decryption key for an identity $\ID=(\ID_{1},\ldots,\ID_{\ell})$ which does not match the challenge pattern, $\B$ computes the projection of the identity onto the HIBE identity space to give a projected identity $\hat{\ID}=(\hat{\ID}_{1}\ldots, \hat{\ID}_{\hat{\ell}})$.
+        \begin{itemize}
+        \item If $\ell \leq \ell^{*}$ then $\hat{\ell} \gets \pi(\ell)$ and $\hat{\ID}_{\pi(i)} \gets \ID_{i}$ for $i\notin W(P^{*}_{\leq \ell})$. Since $\ID$ does not match the challenge pattern for the WIBE, we have that $\hat{\ID}$ does not match the challenge identity for the HIBE. $\B$ queries its $\texttt{Corrupt}$ oracle on $\hat{\ID}$ and receives $(\hat{h},\hat{a}_{0},\ldots,\hat{a}_{\hat{\ell}})$ in response. $\B$ now ``retro-fits'' to find a complete key, by setting
+            \begin{displaymath}
+            \begin{array}{rcl}
+            a_{0} &\gets& \hat{a}_{0}\\
+            a_{i} &\gets& \hat{a}_{\pi(i)} \qquad \;\mbox{ for }1\leq i\leq \ell \mbox{ and } i\notin W(P^{*}_{\leq \ell})\\
+            a_{i} &\gets& g_{1}^{r_{i}} \qquad \quad \mbox{ for }1\leq i\leq \ell \mbox{ and } i\in W(P^{*}_{\leq \ell})\mbox{ where } r_{i}\getsr \Zbb_{p}\\
+            h &\gets& \hat{h} \prod_{i=1, i\in W(P^{*}_{\leq \ell})}^{\ell} (u_{i,0} \cdot u_{i,1}^{\ID_{i}})^{r_{i}}
+            \end{array}
+            \end{displaymath}
+            and returning the key $(h,a_{0},\ldots,a_{\ell})$.
+        \item If $\ell > \ell^{*}$, then $\hat{\ell} = \ell - |W(P^{*})|$, $\hat{\ID}_{\pi(i)} \gets \ID_{i}$ for $1\leq i\leq \ell^{*}$ and $i\notin W(P^{*})$, and $\hat{\ID}_{i-|W(P^{*})|} \gets \ID_{i}$ for $\ell^{*} < i\leq \ell$. Since $\ID$ does not match the challenge pattern for the WIBE, we have that $\hat{\ID}$ does not match the challenge identity for the HIBE. $\B$ queries its $\texttt{Corrupt}$ oracle on $\hat{\ID}$ and receives $(\hat{h},\hat{a}_{0},\ldots,\hat{a}_{\hat{\ell}})$ in response. $\B$ now ``retro-fits'' to find a complete key, by setting
+            \begin{displaymath}
+            \begin{array}{rcl}
+            a_{0} &\gets& \hat{a}_{0}\\
+            a_{i} &\gets& \hat{a}_{\pi(i)} \qquad \qquad \; \,\mbox{ for }1\leq i\leq \ell^{*} \mbox{ and } i\notin W(P^{*})\\
+            a_{i} &\gets& g_{1}^{r_{i}} \qquad \qquad \quad \, \mbox{ for }1\leq i\leq \ell^{*} \mbox{ and } i\in W(P^{*})\mbox{ where } r_{i}\getsr \Zbb_{p}\\
+            a_{i} &\gets& \hat{a}_{i-|W(P^{*})|} \qquad \mbox{ for } \ell^{*} <i\leq \ell\\
+            h &\gets& \hat{h} \prod_{i=1, i\in W(P^{*})}^{\ell^{*}} (u_{i,0} \cdot u_{i,1}^{\ID_{i}})^{r_{i}}
+            \end{array}
+            \end{displaymath}
+            and returning the key $(h,a_{0},\ldots,a_{\ell})$.
+        \end{itemize}
+        \end{itemize}
+            $\A_{1}$ terminates with the output of two
+            equal-length messages $(m_{0},m_{1})$.
+        \item $\B$ outputs the messages $(m_{0},m_{1})$ and receives
+        the ciphertext
+        $(C^{*}_{1},\hat{C}^{*}_{2,1},\ldots,\hat{C}^{*}_{2,\pi(\ell^{*})},C^{*}_{3})$.
+        $\B$ retro-fits this to form the challenge
+        ciphertext for $\A$ by setting
+                \begin{displaymath}
+                \begin{array}{rcll}
+                C^{*}_{2,i} &\gets& \hat{C}^{*}_{2,\pi(i)} & \qquad \mbox{ for } 1\leq i\leq \ell^{*}, i\notin W(P^{*})\\
+                C^{*}_{2,i} &\gets& ({C^{*}_{1}}^{\beta_{i,0}},{C^{*}_{1}}^{\beta_{i,1}}) & \qquad \mbox{ for } 1\leq i\leq \ell^{*}, i\in W(P^{*})
+                \end{array}
+                \end{displaymath}
+        \item $\B$ executes $\A_{2}$ on the ciphertext
+                $(C^{*}_{1},C^{*}_{2,0},\ldots,C^{*}_{2,\ell^{*}},C^{*}_{3})$
+                and answers all oracle queries as before.
+                $\A_{2}$ terminates by outputting a big $b'$ as
+                its guess for the challenge bit $b$.
+
+    \item $\B$ outputs the bit $b'$.
+\end{enumerate}
+The algorithm $\B$ correctly simulates the oracles to which $\A$ has access; furthermore, $\B$ wins the HIBE game if and only if $\A$ wins the game. Hence, we have the theorem. \qed
+
+\begin{theorem}
+If there exists an attacker $\A$ against the sID-IND-CPA security of
+the multi-TA Boneh-Boyen HIBE that runs in time $t$, makes at most
+$q_{K}$ queries to the \texttt{Corrupt} oracle, and has advantage
+$\adv{\A}{HIBE}(k)$, then there exists an algorithm $\B$ that solves
+the DBDH problem that runs in time $t'=O(t)$ and has advantage
+$\adv{\B}{BDDH}(k) \geq \adv{\A}{HIBE}(k) -q_{K}/p$.
+\end{theorem}
+\emph{Proof} We directly describe the algorithm $\B$ against the DBDH problem:
+\begin{enumerate}
+\item $\B$ receives the input $(g,g^{a},g^{b},g^{c},Z)$.
+\item $\B$ runs $\A_{0}$ to obtain the challenge coalition
+$\TA^{*}=\{\TA^{*}_{1},\ldots,\TA^{*}_{n^{*}}\}$ and the
+challenge identity
+$\vec{\ID^{*}}=(\ID^{*}_{1},\ldots,\ID^{*}_{\ell^{*}})$ under
+the challenge trust authority $\ID^{*}_{1} = \TA^{*}_{1}$. (We
+assume, without loss of generality, that the challenge identity
+is under the trusted authority $\TA^{*}_{1}$.)
+\item If $\ell^{*} < L$ then $\B$ randomly generates $\ID^{*}_{\ell^{*}+1},\ldots,\ID^{*}_{L}\getsr \Zbb_{p}$.
+\item $\B$ computes the challenge parameters
+    \begin{displaymath}
+    \begin{array}{c}
+    g_{1} \gets g \qquad g_{2}\gets g^{b} \qquad k_{i,j}, \alpha_{j} \getsr \Zbb_{p}^{*} \mbox{ for } 0\leq i\leq L, j\in \{0,1\}\\
+    pk_1 \gets g^{a}/g^{\sum_{j=2}^{n^{*}} \alpha_{j}} \qquad pk_j \gets g^{\alpha_{j}} \mbox{ for } 2\leq j\leq n^{*}\\
+    u_{i,0} \gets g_{1}^{k_{i,0}}\cdot (g^{a})^{-\ID^{*}_{i}k_{i,1}} \qquad u_{i,1} \gets (g^{a})^{k_{i,1}} \qquad \mbox{ for } 1\leq i\leq L
+    \end{array}
+    \end{displaymath}
+    We will set $\TA^{*}_{1}$'s public key to be $\pk_{1} =
+    g^{a} / g^{\sum_{j=2}^{n^{*}} \alpha_{j}}$ and
+    $\TA^{*}_{i}$'s public/private key pair to be $\pk_{i} =
+    g_{1}^{\alpha_{i}}$ and $\sk_{i} = g_{2}^{\alpha_{i}}$ for
+    $2\leq i\leq n^{*}$.
+\item $\B$ runs $\A_{1}$ on the public parameters $(g_{1},g_{2},u_{1,0},u_{1,1},\ldots,u_{L,0},u_{L,1})$. If $\A_{1}$ makes an oracle queries, then $\B$ answers queries as follows:
+    \begin{itemize}
+    \item $\texttt{CreateTA}$: Suppose $\A$ requests the public key for $\TA$.
+    If $\TA \in \TA^{*}$ then $\B$ returns the public key
+    $\pk_{i}$ derived above. Otherwise, $\B$ generates
+    $\alpha_{\TA} \getsr \Zbb_{p}$ and returns the public
+    key $g_{1}^{\alpha_{\TA}}$, while storing $\TA$ for
+    future use.
+
+    \item $\texttt{Corrupt}$: Suppose $\A$ requests the decryption key
+    for $\vec{\ID}$. If $\vec{\ID} = (\TA)$, we must have
+    $\TA \notin \TA^{*}$ for this to be a valid query;
+    hence, $\B$ returns $g_{2}^{\alpha_{\TA}}$ where
+    $\alpha_{\TA}$ is the value generated during the
+    \texttt{CreateTA} query. If $\vec{\ID}$ as a subordinate user of some trust authority $\TA$, we
+    require that $\TA\neq \TA^{*}_{1}$ or $\vec{\ID}$ is not
+    ancestor of $\vec{\ID^{*}}$. Let
+    $\vec{\ID}=(\ID_{1},\ldots,\ID_{\ell})$. If $\TA\neq
+    \TA^{*}_{1}$ then we may extract a decryption key using
+    the extract algorithm and the master secret key of
+    $\TA$. If $\TA=\TA^{*}_{1}$ and there exists an index
+    $1\leq j\leq L$ such that $\ID_{j} \neq
+    \ID^{*}_{j}$, then $\B$ generates $r_{1},\ldots,r_{\ell}\getsr
+    \Zbb_{p}$ and computes the decryption key
+    $(h,a_{1},\ldots,a_{j})$ for $(\ID_{1},\ldots,\ID_{j})$
+    as
+        \begin{eqnarray*}
+        h &\gets& g_{2}^{-\frac{k_{j,0}}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}} \cdot g_{2}^{-\sum_{j=2}^{n^{*}}\alpha_{j}}\cdot \prod_{i=1}^{j} \left(u_{i,0}\cdot u_{i,1}^{\ID_{i}}\right)^{r_{i}}\\
+        a_{i} &\gets& g_{1}^{r_{i}} \mbox{ for } 1\leq i\leq j-1\\
+        a_{j} &\gets& g_{2}^{-\frac{1}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}} \cdot g_{1}^{r_{j}}
+        \end{eqnarray*}
+        $\B$ computes the decryption key for $\vec{\ID}$ using the key derivation algorithm and returns the result. If no such $j$ exists then $\B$ aborts.
+
+    \item $\texttt{SetupCoalitionBroadcast}$: Suppose that $\A$ makes a request for $\TA$ to send messages to the coalition $\C$.
+    For this to be a valid request we must have $\TA \in
+    \C$. If $\TA \neq \TA^{*}_{1}$, $\B$ can compute the
+    private key directly; hence, $\B$ can return the correct
+    value using the appropriate algorithm. For
+    $\TA=\TA^{*}_{1}$, $\B$ generates $r_{1}\getsr
+    \Zbb_{p}$ and computes for each $\TA_{i} \in \C \setminus
+    \{\TA\}$
+        \begin{eqnarray*}
+        w_{i,0} &\gets& g_{2}^{-\frac{k_{1,0}}{k_{1,1}(\TA_{i}-\TA^{*}_{1})}} \cdot g_{2}^{-\sum_{j=2}^{n^{*}}\beta_{j}} \cdot \left( u_{1,0} \cdot u_{1,1}^{\TA_{i}} \right)^{r_{1}}\\
+        w_{i,1} &\gets& g_{2}^{-\frac{1}{k_{1,1}(\TA_{i}-\TA^{*}_{1})}}g_{1}^{r_{1}}
+        \end{eqnarray*}
+        and sets $w_{i}\gets (w_{i,0},w_{i,1})$. $\B$
+        returns the list $\{ w_{i} : \TA_{i} \in \C
+        \setminus \{\TA\}\}$.
+    \item $\texttt{SetupCoalitionKeys}$: The output of this oracle
+    can be returned directly as it is independent of any
+    private key values.
+    \end{itemize}
+    $\A_{1}$ terminates with the output of two equal-length
+    messages $(m_{0},m_{1})$.
+\item $\B$ chooses a random bit $b\getsr \{0,1\}$ and computes the ciphertext
+        \begin{displaymath}
+        C^{*} \gets (g^{c},(g^{c})^{k_{1,0}}, \ldots,
+        (g^{c})^{k_{\ell^{*},0}}, m_{b}\cdot Z) \, .
+        \end{displaymath}
+\item $\B$ executes $\A_{2}$ on the input $C^{*}$ and answers all of $\A_{2}$'s
+oracle queries as in the previous phase. $\A$ terminates with
+the output of a bit $b'$.
+\item If $b=b'$ then $\B$ outputs 1. Otherwise, outputs 0.
+\end{enumerate}
+
+The $\texttt{Corrupt}$ oracle for subordinates works perfectly
+providing that $\B$ does not abort. The simulator only aborts occurs
+if $\vec{\ID} = (\ID_{1}^{*},\ldots,\ID^{*}_{\ell})$ for some $\ell
+> \ell^{*}$. In particular, this means that
+$\ID_{\ell^{*}+1} = \ID^{*}_{\ell^{*}+1}$, which occurs with
+probability $1/p$ as this value is information theoretically hidden
+from $\A$. Hence, the probability that this does not occur in the
+entire execution of $\A$ is $q_{K}/p$ where $q_{K}$ is the number of
+queries to the $\texttt{Corrupt}$ oracle. To show that if the
+simulator doesn't abort, the $\texttt{Corrupt}$ returns a correct
+key, it suffices to show that
+\begin{displaymath}
+\sk_1 \left(u_{j,0}\cdot u_{j,1}^{\ID_{j}}\right)^{r} = g_{2}^{\frac{-k_{j,0}}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}} \cdot g_{2}^{-\sum_{i=2}^{n^{*}} \alpha_{i}} \qquad \mbox{ for } \qquad r = -\frac{b}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}\, .
+\end{displaymath}
+We note that $\sk_1 = g_{2}^{a-\sum_{i=2}^{n^{*}} \alpha_{i}}$.
+Therefore, we have:
+\begin{eqnarray*}
+\sk_1 \left(u_{j,0}\cdot u_{j,1}^{\ID_{j}}\right)^{r} &=& g_{2}^{a-\sum_{i=2}^{n^{*}} \alpha_{i}} \left( g^{k_{j,0}} \cdot (g^{a})^{-k_{j,1}\ID^{*}_{j}} \cdot (g^{a})^{k_{j,1}\ID_{j}} \right)^{-\frac{b}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}}\\
+&=& g^{ab} g_{2}^{-\sum_{i=2}^{n^{*}}\alpha_{i}} \left( g^{k_{j,0}} \cdot (g^{a})^{k_{j,1}(\ID_{j}-\ID^{*}_{j})} \right)^{-\frac{b}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}}\\
+&=& g^{ab} g_{2}^{-\sum_{i=2}^{n^{*}}\alpha_{i}} (g^{b})^{\frac{-k_{j,0}}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}}g^{-ab}\\
+&=& g_{2}^{\frac{-k_{j,0}}{k_{j,1}(\ID_{j}-\ID^{*}_{j})}} g_{2}^{-\sum_{i=2}^{n^{*}}\alpha_{i}}\\
+\end{eqnarray*}
+Hence, $\B$'s simulation returns a correct decryption key. A similar
+calculation shows that the $\texttt{SetupCoalitionBroadcast}$
+algorithm gives correct broadcast messages for $\TA^{*}_{1}$. All
+other oracles that $\B$ provides correctly simulate the security
+model for $\A$.
+
+We now assume that $\B$ does not abort. If $Z=e(g,g)^{abc}$ then the
+challenge ciphertext is a correct encryption of $m_{b}$. This is
+because an encryption using the random value $c$ would have
+\begin{eqnarray*}
+C_{1} &=& g_{1}^{c}=g^{c}\\
+C_{2,i} &=& (u_{i,0} \cdot u_{i,1}^{\ID^{*}_{i}})^{c} = (g^{c})^{k_{i,0}} \qquad \mbox{ for } 1\leq i\leq \ell^{*}\\
+C_{3} &=& m_{b} \cdot e(\prod_{i=1}^{n^{*}} \pk_i,g_{2})^{c}
+= m_{b} \cdot e(g^{a},g^{b})^{c} = m_{b} \cdot e(g,g)^{abc}
+\end{eqnarray*}
+The probability that $\B$ outputs 1 in this situation is the
+probability that $b=b'$ in the sID-IND-CPA game for the attacker
+$\A$. This probability can be shown to be $(\adv{\A}{HIBE}(k)-1)/2$.
+If $Z$ is random then the challenge ciphertext information
+theoretically hides $b$ and so the probability that $\B$ outputs 1
+in this situation is $1/2$. Hence, the probability that $\B$ wins
+the DBDH is at least $\adv{\A}{HIBE}(k)/2-q_{K}/2p$. \qed
+
+\end{document}

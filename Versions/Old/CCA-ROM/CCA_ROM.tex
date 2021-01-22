@@ -1,0 +1,215 @@
+\documentclass[10pt]{llncs}
+
+\usepackage{fullpage}
+\usepackage{amsmath,amssymb}
+\usepackage{verbatim}
+
+\newcommand{\A}{\mathcal{A}}
+\newcommand{\B}{\mathcal{B}}
+\newcommand{\C}{\mathcal{C}}
+\newcommand{\U}{\mathcal{U}}
+
+\newcommand{\Zbb}{\mathbb{Z}}
+\newcommand{\Gbb}{\mathbb{G}}
+
+\newcommand{\ID}{\mathit{ID}}
+\newcommand{\TA}{\mathit{TA}}
+
+\newcommand{\pk}{\mathit{pk}}
+\newcommand{\sk}{\mathit{sk}}
+
+\newcommand{\getsr}{\stackrel{{\scriptscriptstyle\$}}{\gets}}
+\newcommand{\adv}[2]{\mathit{Adv}_{#1}^{\texttt{#2}}}
+
+\title{Multiple Hierarchy Wildcard Encryption}
+\author{Christopher A. Seaman\inst{1} \and
+		Kent D. Boklan\inst{2} \and
+		Alexander W. Dent\inst{3}}
+
+\institute{Graduate Center, City University of New York, USA \and
+			Queens College, City University of New York, USA \and
+			Royal Holloway, University of London, UK}
+
+\begin{document}
+\maketitle
+
+%\begin{abstract}
+%\end{abstract}
+
+\section{Security Model}
+The security of a multi-TA WIBE is parametrized by a bit $b \in \{0,1\}$ and a positive integer $k$ through the following game. An attacker, $\A$, is tasked with guessing the value of $b$ chosen by the challenger. Initially an attacker is given the public parameters for the system. These parameters include $(g_1, g_2, u_{1,0}, u_{1,1}, u_{2,0}, u_{2,1}, \ldots, u_{L,0}, u_{L,1}) \in \Gbb$ defining a scheme of maximum depth $L$, an identity space $\mathcal{ID} = \{0,1\}^k$, and a bilinear map $e: \Gbb \times \Gbb \rightarrow \Gbb^*$. In the first phase the attacker is allowed to query the challenger. For chosen-plaintext security (IND-ID-CPA), the attacker is given polynomially many queries to the following oracles:
+
+\begin{itemize}
+\item $\texttt{CreateTA}(\TA)$: The oracle computes $(pk_i,sk_i)\getsr \texttt{Setup}(1^{k},\TA)$ for the TA identity $\TA_i$ and returns $pk_i$. This oracle can only be queried once for each identity $\TA_i$.
+\medskip
+
+\item $\texttt{SetupCoalitionBroadcast}(\TA_i,\C)$: This oracle runs the $\texttt{SetupCoalitionBroadcast}$ algorithm for coalition $\C$ containing $\TA_i$ and returns messages $w_{i,j} \forall \TA_j \in \C \setminus \TA_i$.
+\medskip
+
+\item $\texttt{SetupCoalitionKeys}(\TA_i, w_{j,i}\forall \TA_j \in \C \setminus \TA_i)$: This oracle can only be queried if each $\TA_i, \TA_j \in \C$ has been queried to the $\texttt{SetupCoalitionBroadcast}$ oracle with $k$ $\TA$'s in the coalition. The oracles runs the $\texttt{SetupCoalitionKeys}$ algorithm assuming that message $w_{j,i}$ was sent by $\TA_{j}$. Note that this does not imply that all the TAs believe that they're in the same coalition.
+\medskip
+
+\item $\texttt{Corrupt}(\vec{\ID})$: The oracle returns $d_{\vec{\ID}}$ for the identity $\vec{\ID}$.  Note that if $\vec{\ID} = TA_i$ then this method returns $\TA_i$'s secret key $sk_i$.
+\end{itemize}
+
+For chosen-ciphertext security, the attacker is additionally given access to decryption oracles:
+
+\begin{itemize}
+	\item $\texttt{UserDecrypt}(\vec{\ID},C^{*})$: This oracle decrypts the ciphertext with the decryption key $d_{\vec{\ID}}$.
+	\medskip
+
+	\item $\texttt{CoalitionDecrypt}(\C,\vec{\ID},C^{*})$: This oracle decrypts the ciphertext with the coalition decryption key $c_{\vec{\ID}}$ corresponding to coalition $\C$.
+\end{itemize}
+
+To end the first phase the attacker outputs two equal-length messages $m_1, m_2$ and a challenge pattern $\vec{\mathit{P}}^ = (P_1, P_2, \ldots, P_\ell)*$ for $P_i \in \mathcal{ID} \cup \{*\}$. This is modeled as a single query to the oracle:
+
+\begin{itemize}
+\item $\texttt{Test}(\C^*,\mathit{P},m_{0},m_{1})$: This oracle takes as input two messages $(m_{0},m_{1})$ of equal length. It encrypts the message $m_{b}$ for the coalition using $pk_i \forall \TA_i \in \C^*$ under the pattern $\mathit{P}$. This oracle may only be access once and outputs a ciphertext $C^{*}$. We will let $\C^*$ denote the challenge coalition $(\TA_{a},\ldots,\TA_{k})$.
+\end{itemize}
+
+The relationship between the attacker's queries and choice of $\vec{P}^*$ are restricted. Specifically, the attacker is not allowed access to the decryption keys of nodes matching the challenge pattern nor nodes capable of generating those keys. The disallowed oracle queries are:
+\begin{enumerate}
+	\item A \texttt{Corrupt} query for any $\vec{\ID}$ matching pattern $\mathit{P}$
+	\item A \texttt{Corrupt} query for any $\vec{\ID}$ that is an ancestor of pattern $\mathit{P}$, i.e. there exists $\vec{\ID}^*$ such that $\vec{\ID}\|\vec{\ID}^*$ matches the pattern $\mathit{P}$
+	\item A \texttt{UserDecrypt} decrypt query for $C^{*}$ and any user $\ID$ in the test coalition matching the pattern $\mathit{P}$ or an ancestor thereof.
+\end{enumerate}
+
+For the second phase the attacker is once again given access to the queries from the first phase (still restricted as above). The attacker ends the game by outputting a bit $b'$ as its guess for the value of bit $b$. We define the attacker's advantage as:
+
+\begin{eqnarray*}
+	& \adv{\A}{IND}(k) = |Pr[b' = b] - \frac{1}{2}|
+\end{eqnarray*}
+
+\section{Non-Selective Identity Security in the Random Oracle Model}
+
+Like the Boneh-Boyen HIBE it is based on \cite{Boneh04}, the multi-$\TA$ scheme is only proven secure in the (selective-identity) multi-TA IND-sWID-CPA model. For non-wildcard single $\TA$ schemes, selective-identity IND-s(H)ID security in the standard model can be transformed into non-selective-identity secure IND-(H)ID schemes in the random oracle model \cite{Boneh05}. This technique was extended to securely enable wildcards in IND-sHID-CPA WIBE schemes \cite{Abdalla06} and we further extend it to prove non-selective-identity security of our proposed multi-$\TA$ scheme in the random oracle model.
+
+The security game in the random oracle model is the same as in the standard model with the addition of one new oracle \cite{Bellare93}. This oracle responds to each query with a uniformly random element chosen from its output domain. Additionally, for each specific query the response is always the same whenever that query is made. 
+
+%FIXME - rewrite for clarity
+To prove security in a non-selective-identity setting we alter the routines of the multi-TA WIBE scheme to use the hash of an identity ($H_i(\ID_i)$) rather than the identity ($\ID_i$) for each level $i$.  The key derivation and encryption routines pass the identity to a hash function (modeled as a random oracle) and use the result in place of the identity in the relevant algorithm. This hash function maps from the finite space of identifiers to an equal or smaller sized target space. This transform changes the pattern $\vec{P} = (P_1, P_2, ..., P_\ell)$ into pattern $H(P) = \vec{P}' = (P_1', P_2', ..., P_\ell')$ as follows:
+$$P_i' = H_i(P_i) \textrm{ for } i \notin W(P), \textrm{ otherwise } H(P_i) = * = P_i'$$
+
+We note that a finite family of independent random oracles of predetermined maximum size may be simulated using a single random oracle. Given a single random oracle $H(\textrm{query})$, a WIBE of maximum depth $L$. and a fixed-length format to enumerate $i \in \{1 \ldots L\}$, we may create $i$ independent random oracles. Each oracle $H_i(\textrm{query})$ corresponding to level $i$ of the WIBE is simulated by prepending the query with the number of the oracle it is addressed to, $H_i(\textrm{query}) = H(i || \textrm{query})$.
+
+\begin{theorem}
+Suppose that there exists a polynomial-time attacker $\A$ against the non-selective-identity multiple TA IND-WID-CPA Boneh-Boyen WIBE with advantage $\epsilon$ with access to $q_H$ queries from each of the $L$ random oracles associated with hierarchy levels, then there exists a polynomial-time attacker $\B$ against the selective-identity multiple TA IND-sWID-CPA Boneh-Boyen WIBE with advantage $\epsilon'$ when allowed $q_K$ key derivation queries with $\epsilon'$ bounded:
+$$\epsilon' \ge \left(\frac{\epsilon}{2^n L (q_H + 1)^L}\right)\left(1 - \frac{(q_H + 1)}{|\mathcal{\ID}|}\right)^L$$
+\end{theorem}
+\emph{Proof}
+
+%Describe algorithms
+
+Suppose there exists adversary $\A$ against the multi-TA IND-WID-CPA scheme (with hashed identities), we will construct an adversary $\B$ which gains an advantage against the multi-TA IND-sWID-CPA scheme using the algorithm $\A$ as a black box.
+
+For a multi-TA WIBE of maximum depth $L$ consisting of a maximum of $k$ $\TA's$, the algorithm $\B$ runs as follows:
+
+\begin{enumerate}
+	\item $\B$ randomly chooses a length $\ell^* \in \{1 \ldots L\}$ for its challenge identity vector. Also, $\B$ randomly chooses a coalition $\vec{\TA}^{*} = (\TA^{*}_{1},\ldots,\TA^{*}_{n})$ from all possible non-empty combinations of the $k$ $\TA$'s. The numbering assignment of $\TA$'s in the coalition is assigned randomly.
+	\item $\B$ chooses a challenge pattern $\vec{P}^*$ as follows. First, $\B$ randomly assigns a family $t_i \getsr \{0, 1, ..., q_H\}$ for all $i \in \{1, ..., \ell\}$. If $t_i = 0$ then $\B$ assigns $P_i = *$. For $t_1 \neq 0$ $\B$ randomly chooses $P_1 \getsr \{\TA_1, *\}$. For $i > 1$ with $t_i \neq 0$ $\B$ randomly chooses $P_i \getsr \mathcal{ID}$
+	\item The challenger responds with WIBE parameters $\mathit{param} = (\hat{g}_{1},\hat{g}_{2},\hat{u}_{0,0},\ldots,\hat{u}_{L,1})$. $\B$ initiates $\A$ with the same parameters and a family of hashes $H_i$ for each level $i$ allowed in the HIBE.
+	\item Since both $\B$ and $\A$ are in WIBE environments playing the chosen plaintext game, they have access to the same set of oracles with $\A$ having access to an additional random oracle. To prepare for random oracle queries from $\A$, $\B$ initializes associative lists $J_i$ for each level $i$ allowed in the HIBE to answer queries for each oracle $H_i$. Initially empty, $\B$ must either track the number of entries made on each list with a counter or equivalently through measure of its size, we let $|J_i| \gets 1$ denote the size of empty lists. When $\A$ queries random oracle $H_i$ on identity $\ID$, $\B$ answers as follows:
+	\begin{itemize}
+		\item If $J_i(\ID)$ has been previously defined, then $\B$ returns $J_i(\ID)$.
+		\item Otherwise:
+		\begin{itemize}
+			\item For $t_i = J_i$, if $i = 1$ then $\B$ assigns the value $J_1(\ID) \gets \TA_1$. If $i \neq 1$ then $\B$ assigns the value $J_i \gets P_i^{*}$.
+			\item For $t_i \neq J_i$, $\B$ assigns $J_i(\ID) \gets H_i(\ID)$ and increments the counter $|J_i|$.
+			\item $\B$ then returns the value $J_i(\ID)$
+		\end{itemize}
+	\end{itemize}
+	\item For other queries, $\B$ hashes the relevant identity pattern $\vec{P}$ as a random oracle query with result $\vec{P}'$. Note that for $\TA$-level queries with $\vec{\ID} = (\TA_i)$ the pattern is still transformed as $\vec{\ID}' = (J_1 (\TA_i))$. $\A$ may query:
+	\begin{itemize}
+		\item \texttt{CreateTA}($\TA_i$) $\B$ computes $\TA_i' = J_1(\TA_i)$ and forwards the query using its own oracle as \texttt{CreateTA}($\TA_i'$), returning the result.
+		\item \texttt{Corrupt}($\vec{P}$) If $J(\vec{P}) \in_* \vec{P^*}$ then $\B$ aborts because it would have to make an illegal query. Otherwise, $\B$ computes $\vec{P}' = J(\vec{P})$ and forwards the query using its own oracle as \texttt{Corrupt}($\vec{P}'$), returning the result.
+		\item \texttt{SetupCoalitionBroadcast}($\TA_i, \C$) For each $\TA_j$ in the coalition $\C$, $\B$ computes the hashed $\TA$ identity $\TA_j' = J_1(\TA_j)$ and adds it to coalition $\C'$. $\B$ also computes the hashed identity $\TA_i' = J_1(\TA_i)$ then forwards the query as \texttt{SetupCoalitionBroadcast}($\TA_i', \C'$), returning the result.
+		\item \texttt{SetupCoalitionKeys}($\TA_j, \sk_j, \C, \hat{W}_j$) For each $\TA_j$ in the coalition $\C$, $\B$ computes the hashed $\TA$ identity $\TA_j' = J_1(\TA_j)$ and adds it to coalition $\C'$. $\B$ then computes $\TA_j' = J_1(\TA_j)$ and forwards the query as \texttt{SetupCoalitionKeys}($\TA_j', \sk_j, \C$), returning the result.
+		\item \texttt{ExtractCoalitionKey}($\C, v_j, d_{\vec{\ID}}$) For each $\TA_j$ in the coalition $\C$, $\B$ computes the hashed $\TA$ identity $\TA_j' = J_1(\TA_j)$ and adds it to coalition $\C'$. $\B$ then computes $\vec{\ID}' = J(\vec{\ID})$ and queries \texttt{ExtractCoalitionKey}($\C', v_j, d_{\vec{\ID'}}$), returning the result.
+	\end{itemize}
+	\item $\A$ ends this stage of the game by outputting a challenge pattern $\widehat{\vec{P}} = (\widehat{P}_1, ..., \widehat{P}_{\ell})$ and challenge coalition $\widehat{\vec{\TA}} = \{\widehat{\TA_1}, ..., \widehat{\TA_k}\}$ and two equal-length messages $(m_0, m_1)$. If any $J_i(\widehat{P}_i)$ has not yet been defined then $\B$ sets $J_i(\widehat{P}_i) \gets H_i(\widehat{P}_i)$.
+	\item $\B$ must abort if:
+		\begin{itemize}
+			\item if $\ell \neq \ell^{*}$
+			\item if there exists $i \in W(\widehat{\vec{P}})$ such that $i \notin W(\vec{P}^{*})$
+			\item if $J_i(\widehat{P_i}) \neq P^{*}_i$
+			\comment{\item if $J_1(\widehat{\TA_i}) \notin \vec{\TA}^{*}$}
+			\item if $|\vec{\widehat{\TA}}| \neq |\vec{\TA}^{*}|$
+		\end{itemize}
+	\item If $\B$ has not aborted it outputs the messages $(m_0, m_1)$ to the challenger.
+	\item The challenger computes the challenge ciphertext $C^{*}$ by encrypting message $m_\beta$ for $\beta \getsr \{0, 1\}$ and returns it to $\B$.
+	\item $\B$ in turn returns the challenge ciphertext to $\A$, which outputs a bit $\widehat{\beta}$ as a guess for the value of $\beta$.
+	\item In turn, $\B$ outputs $\widehat{\beta}$ as its guess for the value of $\beta$.
+\end{enumerate}
+
+%TODO - show it approximates the model
+
+%TODO - show it breaks the scheme
+
+The algorithm $\B$ wins the IND-sWID-CPA game if $\A$ wins the IND-WID-CPA game and $\B$ does not abort. $\B$ may abort if it has guess the challenge coalition and pattern incorrectly, or if it was forced to make an illegal query. $\B$ uses the $t_i$'s to guess which of $\A$'s queries will be used to define the $i^{\textrm{th}}$ level of its challenge pattern with $t_i =0$ corresponding to a wildcard.
+
+To avoid $\B$'s making of an illegal query we require that there are no collisions in the hash. For distinct identifiers $\ID \ne \ID'$ we require that the hash output $H_i(\ID) \ne H_i(\ID')$. With a random oracle such a collision could only occur by chance. Given $(q_H + 1)$ random oracle queries for a level the probability of a collision has an upper bound of $(q_H + 1)/|\mathcal{\ID}|$. Then the probability of successfully avoiding a collision has a lower bound of $(1 - (q_H + 1)/|\mathcal{\ID}|)$. With $L$ independent random oracles, the probability of avoiding a collision on all levels is then $(1 - (q_H + 1)/|\mathcal{\ID}|)^L$. If a collision occurs then $\B$ will gain no benefit from $\A$'s advantage as it cannot properly simulate the WIBE environment. Of $\A$'s original advantage $\epsilon$, $\B$ may only leverage an advantage of $\epsilon(1 - (q_H + 1)/|\mathcal{\ID}|)^L$.
+
+We require that $\B$ correctly choose the challenge pattern and coalition in order to win the game. The probability that $\ell = \ell^*$ is $1/L$, the probability that $t_i$ correctly identifies $P_i$ is $1/(q_H + 1)$ for each level $i \le L$, and the probability of the challenge coalition $\C$ being correct as $1/2^n$. Each of these factors reduce $\B$'s advantage multiplicatively in comparison to $\A$'s. If $\B$ correctly guesses these values and $\A$ never forces $\B$ to make an illegal query then $\B$ has advantage:
+$$\epsilon' \ge \left(\frac{\epsilon}{2^n L (q_H + 1)^L}\right)\left(1 - \frac{(q_H + 1)}{|\mathcal{\ID}|}\right)^L$$
+\qed
+
+\begin{comment}
+\section{Chosen-Ciphertext Security}
+Transforming an adaptive chosen-plaintext secure (CPA) secure IBE scheme into a CCA-secure public-key scheme was originally proposed by Canetti, Halevi, and Katz \cite{CHK}. Their method was later improved for efficiency by Boneh and Katz \cite{BK}, and further research by Boyen, Mei, and Waters \cite{BMW} allowed for transformations with fewer dependencies outside the initial IBE scheme. Each of these methods allows for a parallel transformation of selective-identity CPA-secure IBE schemes in the standard model into nonselective-identity CCA-secure public-key scheme in the random oracle model using a proof similar to the one above.
+
+We present a transformation descended from the Park and Lee's proof \cite{Park07} which directly transforms a selective-identity CPA-secure $L+1$ level multi-TA WIBE into a selective-identity CCA-secure $L$ level multi-TA WIBE in the standard model. While requiring a one-time signature scheme as in the original Canetti, Halevi, and Katz transformation, the Park and Lee transformation (and our extension thereof) does not require the padding of identities by one bit.
+
+To achieve sWID-IND-CCA chosen-ciphertext security we require the addition of a strongly unforgeable signature scheme \emph{Sig = (SigKeyGen, Sign, Verify)} and a collision resistant hash function mapping verification keys to $\Zbb_p$ where $p$ is the order of $\Gbb$. For simplicity, we will assume a natural map of verification keys to $\Zbb_p$ and treat the keys as members of the finite field directly. Recall that $\Gbb$ is the group from which the public parameters of the HIBE are chosen, and that there is a bilinear map $e: \Gbb \times \Gbb \rightarrow \Gbb_T$ mapping onto the message space $\Gbb_T$. In mapping onto a WIBE of one fewer levels, the public parameters for the $L+1$ level are appropriated for the verification code. The new public parameters for the Boneh-Boyen based multi-TA WIBE become:
+
+$$\{g_1, g_2, u_{1,0}, u_{1,1}, u_{2,0}, u_{2,1}, \ldots, u_{L,0}, u_{L,1}, u_{v,0}, u_{v,1}\} \in \Gbb$$
+$$\textrm{And the set of $\TA$s } \{\TA_1, \TA_2, \ldots, \TA_n\}$$
+
+The algorithms for key delegation, encryption, and decryption must be altered to incorporate verification codes. The algorithms change as follows:
+
+\begin{itemize}
+	\item \texttt{KeyGen}($d_{\vec{\ID}}$, $\vec{ID}'$) Node $\vec{ID} = (\ID_1, \ldots, \ID_j)$ generates a secret key $d_{\vec{\ID}'}$ for subordinate node $\vec{ID}' = (\ID_1, \ldots, \ID_j, \ID_{j+1}, \ldots, \ID_\ell)$ using its private key $d_{\vec{\ID}} = (h, a_1, \ldots, a_j)$ as follows:
+		$$d_{\vec{\ID}'} = (h \cdot \prod_{k = 1}^\ell (u_{k, 0} \cdot u_{k,1}^{\ID_k})^{r_k}, a_1 \cdot g^{r_1}, a_2 \cdot g^{r_2}, \ldots, a_j \cdot g^{r_j}, g^{r_{j+1}}, g^{r_{j+2}}, \ldots, g^{r_\ell})$$
+	\item \texttt{Encrypt}($m$, $\vec{P}$, $\C$) To encrypt message $m$ to pattern $\vec{P} = (P_1, P_2, \ldots, P_\ell)$ in coalition $\C$ with coalition-specific public key $pk_\C$ the sender randomly chooses $t \getsr \Zbb_p$. The sender runs the \emph{SigKeyGen} signing key generator algorithm to obtain a signing key $S$ and corresponding verification key $K$. The sender then computes:
+	\begin{eqnarray*}
+		C_{1} & \gets & g_{1}^{t} \\
+		C_{2,v} & \gets & (u_{v, 0} \cdot u_{v,1}^K)^t\\
+		C_{2,i} & \gets & \left\{
+			\begin{array}{ll}
+				(u_{i,0} \cdot u_{i,1}^{\ID_{i}})^{t} & \qquad \mbox{if } i \notin W(P) \\
+				(u_{i,0}^{t},u_{i,1}^{t}) & \qquad \mbox{if } i \in W(P)
+			\end{array}
+		\right. \\
+		C_{3} &\gets& m \cdot e(\pk_\C,g_{2})^{t}\\
+		C \gets (C_1, C_{2,k}, C_3, Sign_{K}(C)) \textrm{ for } k\in\{1 \ldots \ell, v\}
+	\end{eqnarray*}
+	The ciphertext is then sent as:
+	$$\vec{CT} = (C, Sign_S(C), V) \textrm{ where } S \textrm{ and } V \textrm{ are related signing and verification keys respectively}$$
+	\item \texttt{Decrypt}($\vec{CT}$, $\C$, $d_{\vec{\ID}}$) A ciphertext $\vec{CT} = (C, \sigma, V)$ encrypted to pattern $P$ under coalition $\C$ may be decrypted by an entity $\vec{\ID} = \{\ID_1, \ID_2, \ldots, \ID_\ell\} \in^* P$ holding key $d_{\vec{\ID}} = (h, a_1, a2, \ldots, a_\ell)$ specific to coalition $\C$. The decrypting node first verifies that signature $\sigma$ of ciphertext $C$ is valid under verification key $V$, if invalid outputting $\perp$. If the verification succeeds the ciphertext is then decrypted by choosing randomly $s \getsr \Zbb_p$ and computing:
+	\begin{eqnarray*}
+		C'_{2,i} & \gets & \left\{
+			\begin{array}{ll}
+				C_{2,i} & \qquad \mbox{if } i \notin W(P) \\
+				(C_{2,i,0} \cdot C_{2,i,1}^{\ID_i}) & \qquad \mbox{if } i \in W(P)
+			\end{array}
+			\right. \\
+			m' & \gets & C_{3} \frac{\prod_{i=1}^{\ell} e(a_{i},C'_{2,i}) \cdot e(C_{2,v}, g_1^s)}{e(C_{1},h \cdot (g_1^V \cdot h)^s)}
+	\end{eqnarray*}
+\end{itemize}
+
+\begin{theorem}
+Suppose that there exists a polynomial-time attacker $\A$ against the multiple TA IND-sWID-CCA signed-ciphertext Boneh-Boyen WIBE with advantage $\epsilon$, then there exists a polynomial-time attacker $\B$ against the Bilinear Decisional Diffie-Hellman (BDDH) problem with advantage $\epsilon'$.
+\end{theorem}
+\emph{Proof} Suppose there exists adversary $\A$ against the multi-TA IND-sWID-CCA scheme (with verification codes), we will construct an adversary $\B$ which gains an advantage against the multi-TA IND-sWID-CPA scheme using the algorithm $\A$ as a black box.
+
+For a multi-TA WIBE of maximum depth $L$ consisting of a maximum of $k$ $\TA's$, the algorithm $\B$ runs as follows:
+
+\begin{enumerate}
+	\item $\B$ receives BDDH input $(g, g^a, g^b, g^c, Z)$ for some unknown $a, b, c \in \Zbb_p^*$ and must decide whether $Z = g^{abc}$ and output $1$ is true and $0$ otherwise.
+	\item $\B$ initializes $\A$ for the decided number of WIBE levels and $\TA$s. $\A$ returns challenges coalition $C^*$ and challenge pattern $\vec{P}^* = (P^*_1, P^*_2, \ldots, P^*_\ell)$ with $P_{i} \in \Gbb \cup \{*\}$ that $\A$ intends to attack. If $\vec{P^*}$ does not extend to the maximum level $L$ then $\B$ randomly chooses elements $(P*_{l+1}, \dots, P^*_{L}) \in \Zbb_p$. Next $\B$ runs \emph{SigKeyGen} to obtain signing key $S$ and verification key $K$ and 
+	\item $\B$ announces public parameters the 
+\end{enumerate}
+\end{comment}
+
+\bibliographystyle{alpha}
+\bibliography{../bibliography}
+\end{document}
